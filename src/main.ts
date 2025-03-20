@@ -19,7 +19,7 @@ export default class ReactIris extends Plugin {
 		// 只注册合并后的ReadMe视图
 		this.registerView(
 			"ReadMe-view",
-			(leaf) => new ReadMeView(leaf)
+			(leaf) => new ReadMeView(leaf, this)
 		);
 
 		// 添加命令打开合并后的ReadMe视图
