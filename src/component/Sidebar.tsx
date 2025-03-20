@@ -12,7 +12,10 @@ interface SidebarProps {
 }
 
 // 使用forwardRef包装组件，确保ref正确传递
-export const SidebarComponent = forwardRef<{addToFavorites: (message: Message) => void}, SidebarProps>(
+export const SidebarComponent = forwardRef<{
+  addToFavorites: (message: Message) => void, 
+  removeFromFavorites: (messageId: string) => void
+}, SidebarProps>(
   ({ app, visible, plugin }, ref) => {
     const [favoriteMessages, setFavoriteMessages] = useState<Message[]>([]);
     
@@ -43,15 +46,16 @@ export const SidebarComponent = forwardRef<{addToFavorites: (message: Message) =
     };
     
     // 从收藏中移除消息
-    const removeFromFavorites = (id: string) => {
-      const updatedFavorites = favoriteMessages.filter(msg => msg.id !== id);
+    const removeFromFavorites = (messageId: string) => {
+      const updatedFavorites = favoriteMessages.filter(msg => msg.id !== messageId);
       setFavoriteMessages(updatedFavorites);
       saveFavorites(updatedFavorites);
     };
 
     // 正确使用useImperativeHandle暴露方法
     useImperativeHandle(ref, () => ({
-      addToFavorites
+      addToFavorites,
+      removeFromFavorites
     }), [favoriteMessages]);
 
     if (!visible) return null;

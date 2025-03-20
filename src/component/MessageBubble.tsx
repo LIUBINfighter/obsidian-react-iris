@@ -98,40 +98,49 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
           )}
         </div>
         
-        {!isUser && (
-          <div style={{ marginTop: '4px' }}>
-            {!message.favorite ? (
-              <button 
-                onClick={() => onAddToInbox(message)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-accent)',
-                  cursor: 'pointer',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ fontSize: '14px' }}>★</span> 收藏
-              </button>
-            ) : (
-              <span style={{
-                color: 'var(--text-accent)',
-                fontSize: '12px',
-                padding: '2px 6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span style={{ fontSize: '14px' }}>★</span> 已收藏
-              </span>
-            )}
-          </div>
-        )}
+		{!isUser && (
+		  <div style={{ marginTop: '4px' }}>
+			{!message.favorite ? (
+			  <button 
+			onClick={() => onAddToInbox(message)}
+			style={{
+			  background: 'none',
+			  border: 'none',
+			  color: 'var(--text-accent)',
+			  cursor: 'pointer',
+			  padding: '2px 6px',
+			  borderRadius: '4px',
+			  fontSize: '12px',
+			  display: 'flex',
+			  alignItems: 'center',
+			  gap: '4px'
+				}}
+				aria-label="添加到收藏"
+			  >
+			<span style={{ fontSize: '14px' }}>★</span> 添加到收藏
+			  </button>
+			) : (
+			  <button
+			onClick={() => onAddToInbox(message)}
+			style={{
+			  background: 'none',
+			  border: 'none',
+			  color: 'var(--text-accent)',
+			  cursor: 'pointer',
+			  padding: '2px 6px',
+			  borderRadius: '4px',
+			  fontSize: '12px',
+			  display: 'flex',
+			  alignItems: 'center',
+			  gap: '4px'
+				}}
+				aria-label="取消收藏"
+			  >
+			<span style={{ fontSize: '14px' }}>★</span> 取消收藏
+			  </button>
+			)}
+		  </div>
+		)}
       </div>
     </div>
   );

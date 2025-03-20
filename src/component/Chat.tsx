@@ -267,11 +267,14 @@ export const ChatComponent: React.FC<ChatProps> = ({
     }
   };
   
-  // 处理添加到收藏
+  // 处理添加或移除收藏
   const handleAddToInbox = (message: Message) => {
-    // 标记消息为收藏
+    // 切换收藏状态
+    const newFavoriteState = !message.favorite;
+    
+    // 更新消息列表中的收藏状态
     const updatedMessages = messages.map(msg => 
-      msg.id === message.id ? { ...msg, favorite: true } : msg
+      msg.id === message.id ? { ...msg, favorite: newFavoriteState } : msg
     );
     
     setMessages(updatedMessages);
@@ -287,8 +290,14 @@ export const ChatComponent: React.FC<ChatProps> = ({
     
     saveChatSessionToFile(app, sessionId, updatedSession);
     
-    // 调用父组件的onAddToInbox方法
-    onAddToInbox({ ...message, favorite: true });
+    // 根据操作类型调用父组件的onAddToInbox方法
+    if (newFavoriteState) {
+      // 添加到收藏
+      onAddToInbox({ ...message, favorite: true });
+    } else {
+      // 从收藏中移除 - 传递一个特殊标志以表示这是移除操作
+      onAddToInbox({ ...message, favorite: false, action: 'remove' });
+    }
   };
   
   return (

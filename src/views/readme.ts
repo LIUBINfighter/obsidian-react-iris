@@ -158,12 +158,18 @@ export class ReadMeView extends ItemView {
     this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
   }
   
-  // 添加消息到收藏，确保消息正确传递给Sidebar组件
-  handleAddToInbox = (message: Message) => {
+  // 添加或删除消息到收藏，确保消息正确传递给Sidebar组件
+  handleAddToInbox = (message: Message & { action?: 'remove' }) => {
     if (this.sidebarRef.current) {
-      this.sidebarRef.current.addToFavorites(message);
+      if (message.action === 'remove') {
+        // 如果是移除操作
+        this.sidebarRef.current.removeFromFavorites(message.id);
+      } else {
+        // 如果是添加操作
+        this.sidebarRef.current.addToFavorites(message);
+      }
     } else {
-      console.error("无法访问侧边栏引用，无法添加收藏");
+      console.error("无法访问侧边栏引用，无法更新收藏");
     }
   }
 
