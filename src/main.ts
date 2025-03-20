@@ -1,20 +1,37 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
+import { ReadMeView } from './readme/ReadMeView';
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface ReactIrisSettings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: ReactIrisSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ReactIris extends Plugin {
+	settings: ReactIrisSettings;
 
 	async onload() {
 		await this.loadSettings();
+		// Register a view
+		this.registerView(
+			"ReadMe-view",
+			(leaf) => new ReadMeView(leaf)
+		);
+
+		// Add a command to open the view
+		this.addCommand({
+			id: "show-ReadMe-view",
+			name: "Show ReadMe View",
+			// callback: () => {
+			// 	this.activateView();
+			// }
+		});
+
+
+
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
@@ -108,9 +125,9 @@ class SampleModal extends Modal {
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: ReactIris;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: ReactIris) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
