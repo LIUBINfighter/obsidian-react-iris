@@ -2,13 +2,30 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { ReadMeView } from './views/readme';
 import { ReactIrisSettingTab } from './SettingTab';
 import { ReactIrisModal } from './modal';
+import { AIServiceType } from './services/AIServiceFactory';
 
 interface ReactIrisSettings {
 	mySetting: string;
+	aiService: {
+		type: AIServiceType;
+		baseUrl: string;
+		modelName: string;
+		systemPrompt: string;
+		temperature: number;
+		maxTokens: number;
+	};
 }
 
 const DEFAULT_SETTINGS: ReactIrisSettings = {
-	mySetting: 'default'
+	mySetting: 'default',
+	aiService: {
+		type: 'ollama',
+		baseUrl: 'http://localhost:11434',
+		modelName: 'deepseek-r1:7b',
+		systemPrompt: '你是一个有用的AI助手。',
+		temperature: 0.7,
+		maxTokens: 4096
+	}
 }
 
 export default class ReactIris extends Plugin {
@@ -28,7 +45,7 @@ export default class ReactIris extends Plugin {
 			name: "Show ReadMe and React View",
 			callback: () => {
 				this.activateReadMeView();
-			}
+				}
 			});
 
 		// 添加一个info图标到功能区，点击时打开ReadMe视图
@@ -96,5 +113,10 @@ export default class ReactIris extends Plugin {
 				leaf.view.onOpen();
 			}
 		}, 100);
+	}
+
+	// 获取AI服务配置
+	getAIServiceConfig() {
+		return this.settings.aiService;
 	}
 }
