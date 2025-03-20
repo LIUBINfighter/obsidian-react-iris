@@ -4,13 +4,16 @@ import { createRoot, Root } from 'react-dom/client';
 import { ExampleReactComponent } from '../component/Example';
 import { EditorComponent } from '../component/MarkdownEditor';
 import { SettingComponent } from '../component/Setting';
+import { ChatComponent, Message } from '../component/Chat';
+import { SidebarComponent } from '../component/Sidebar';
 import ReactIris from '../main';
 
 // 定义选项卡类型
 enum TabType {
   EXAMPLE = 'example',
   EDITOR = 'editor',
-  SETTINGS = 'settings' // 新增设置选项卡
+  SETTINGS = 'settings',
+  CHAT = 'chat' // 新增聊天选项卡
 }
 
 // ReadMe视图实现
@@ -19,6 +22,8 @@ export class ReadMeView extends ItemView {
   activeTab: TabType = TabType.EXAMPLE; // 默认显示Example选项卡
   reactContainer: HTMLElement | null = null;
   plugin: ReactIris | null = null; // 添加插件实例引用
+  sidebarVisible: boolean = true; // 侧边栏可见性状态
+  sidebarRef = React.createRef<any>(); // 修改为any类型，以避免TypeScript警告
 
   constructor(leaf: WorkspaceLeaf, plugin?: ReactIris) {
     super(leaf);
@@ -78,23 +83,40 @@ export class ReadMeView extends ItemView {
       }
     });
     
+    // 新增聊天选项卡按钮
+    const chatTab = tabsContainer.createEl("button", {
+      text: "聊天",
+      cls: `tab-button ${this.activeTab === TabType.CHAT ? 'active' : ''}`,
+      attr: {
+        'data-tab': TabType.CHAT,
+        'style': 'margin-right: 10px;'
+      }
+    });
+    
     // 添加选项卡点击事件
     exampleTab.addEventListener("click", () => {
       this.setActiveTab(TabType.EXAMPLE);
-      this.updateTabs(exampleTab, [editorTab, settingsTab]);
+      this.updateTabs(exampleTab, [editorTab, settingsTab, chatTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
     editorTab.addEventListener("click", () => {
       this.setActiveTab(TabType.EDITOR);
-      this.updateTabs(editorTab, [exampleTab, settingsTab]);
+      this.updateTabs(editorTab, [exampleTab, settingsTab, chatTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
     // 新增设置选项卡点击事件
     settingsTab.addEventListener("click", () => {
       this.setActiveTab(TabType.SETTINGS);
-      this.updateTabs(settingsTab, [exampleTab, editorTab]);
+      this.updateTabs(settingsTab, [exampleTab, editorTab, chatTab]);
+      this.renderReactComponent(container as HTMLElement);
+    });
+    
+    // 新增聊天选项卡点击事件
+    chatTab.addEventListener("click", () => {
+      this.setActiveTab(TabType.CHAT);
+      this.updateTabs(chatTab, [exampleTab, editorTab, settingsTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
@@ -119,6 +141,22 @@ export class ReadMeView extends ItemView {
     this.activeTab = tab;
   }
   
+  // 切换侧边栏可见性
+  toggleSidebar = () => {
+    this.sidebarVisible = !this.sidebarVisible;
+    // 重新渲染组件以反映侧边栏状态变化
+    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
+  }
+  
+  // 添加消息到收藏，确保消息正确传递给Sidebar组件
+  handleAddToInbox = (message: Message) => {
+    if (this.sidebarRef.current) {
+      this.sidebarRef.current.addToFavorites(message);
+    } else {
+      console.error("无法访问侧边栏引用，无法添加收藏");
+    }
+  }
+  
   // 根据当前选项卡渲染相应的React组件
   renderReactComponent(container: Element) {
     // 将Element转换为HTMLElement
@@ -137,22 +175,24 @@ export class ReadMeView extends ItemView {
     reactSection.empty();
     
     try {
-      // 显示组件标题
-      let componentTitle = "";
-      
-      switch (this.activeTab) {
-        case TabType.EXAMPLE:
-          componentTitle = "React 组件示例";
-          break;
-        case TabType.EDITOR:
-          componentTitle = "React 编辑器组件";
-          break;
-        case TabType.SETTINGS:
-          componentTitle = "React 设置组件";
-          break;
+      // 显示组件标题，聊天界面不需要标题
+      if (this.activeTab !== TabType.CHAT) {
+        let componentTitle = "";
+        
+        switch (this.activeTab) {
+          case TabType.EXAMPLE:
+            componentTitle = "React 组件示例";
+            break;
+          case TabType.EDITOR:
+            componentTitle = "React 编辑器组件";
+            break;
+          case TabType.SETTINGS:
+            componentTitle = "React 设置组件";
+            break;
+        }
+        
+        const reactHeader = reactSection.createEl("h2", { text: componentTitle });
       }
-      
-      const reactHeader = reactSection.createEl("h2", { text: componentTitle });
       
       // 卸载现有的React根节点（如果存在）
       if (this.root) {
@@ -160,10 +200,14 @@ export class ReadMeView extends ItemView {
         this.root = null;
       }
       
-      // 创建新的React容器
+      // 创建新的React容器，聊天界面需要特殊样式
       this.reactContainer = reactSection.createEl("div", { 
         cls: "react-container",
-        attr: { style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" }
+        attr: { 
+          style: this.activeTab === TabType.CHAT 
+            ? "height: 500px; display: flex; border: 1px solid var(--background-modifier-border); border-radius: 5px;" 
+            : "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
+        }
       });
       
       console.log("React 容器已创建:", this.reactContainer);
@@ -232,6 +276,45 @@ function sayHello(name) {
           })
         );
         console.log("Setting组件已渲染");
+      } else if (this.activeTab === TabType.CHAT) {
+        // 渲染聊天界面，包括聊天组件和侧边栏
+        this.root.render(
+          React.createElement('div', { 
+            style: { 
+              display: 'flex', 
+              width: '100%', 
+              height: '100%' 
+            } 
+          }, [
+            // 聊天主界面
+            React.createElement('div', { 
+              key: 'chat-main',
+              style: { 
+                flex: 1,
+                height: '100%',
+                overflow: 'hidden'
+              } 
+            }, 
+              React.createElement(ChatComponent, {
+                app: this.app,
+                onAddToInbox: this.handleAddToInbox, // 使用类方法传递
+                sidebarVisible: this.sidebarVisible,
+                toggleSidebar: this.toggleSidebar,
+                plugin: this.plugin // 传递插件实例，便于访问vault
+              })
+            ),
+            
+            // 侧边栏组件，确保ref正确传递
+            React.createElement(SidebarComponent, {
+              key: 'chat-sidebar',
+              app: this.app,
+              visible: this.sidebarVisible,
+              ref: this.sidebarRef, // 正确传递ref
+              plugin: this.plugin // 传递插件实例
+            })
+          ])
+        );
+        console.log("Chat组件已渲染");
       }
     } catch (error) {
       console.error("渲染React组件时出错:", error);
