@@ -1,6 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { ReadMeView } from './readme/ReadMeView';
-// Remember to rename these classes and interfaces!
+import { ReadMeView } from './views/readme';
 
 interface ReactIrisSettings {
 	mySetting: string;
@@ -15,31 +14,34 @@ export default class ReactIris extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		// Register a view
+		// 只注册合并后的ReadMe视图
 		this.registerView(
 			"ReadMe-view",
 			(leaf) => new ReadMeView(leaf)
 		);
 
-		// Add a command to open the view
+		// 添加命令打开合并后的ReadMe视图
 		this.addCommand({
-			id: "show-ReadMe-view",
-			name: "Show ReadMe View",
-			// callback: () => {
-			// 	this.activateView();
-			// }
+			id: "show-readme-view",
+			name: "Show ReadMe and React View",
+			callback: () => {
+				this.activateReadMeView();
+			}
+			});
+
+		// 添加一个info图标到功能区，点击时打开ReadMe视图
+		const ribbonIconEl = this.addRibbonIcon('info', 'React Iris Info', (evt: MouseEvent) => {
+			// 打开ReadMe视图
+			this.activateReadMeView();
 		});
+		ribbonIconEl.addClass('react-iris-ribbon-icon');
 
-
-
-
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		 // 移除或注释掉旧的dice图标代码
+		// const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
+		// 	// Called when the user clicks the icon.
+		// 	new Notice('This is a notice!');
+		// });
+		// ribbonIconEl.addClass('my-plugin-ribbon-class');
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
@@ -96,7 +98,8 @@ export default class ReactIris extends Plugin {
 	}
 
 	onunload() {
-
+		// 只需清理合并后的视图
+		this.app.workspace.detachLeavesOfType("ReadMe-view");
 	}
 
 	async loadSettings() {
@@ -105,6 +108,36 @@ export default class ReactIris extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	// 修改激活视图的方法，只保留一个
+	async activateReadMeView() {
+		console.log("尝试激活合并的ReadMe视图");
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType("ReadMe-view")[0];
+		
+		if (!leaf) {
+			console.log("未找到ReadMe视图，创建新视图");
+			leaf = workspace.getLeaf(false);
+			await leaf.setViewState({
+				type: "ReadMe-view",
+				active: true,
+			});
+			console.log("ReadMe视图状态已设置");
+		} else {
+			console.log("找到现有ReadMe视图");
+		}
+		
+		workspace.revealLeaf(leaf);
+		console.log("ReadMe视图已显示");
+		
+		// 强制更新视图
+		setTimeout(() => {
+			if (leaf.view instanceof ReadMeView) {
+				console.log("刷新ReadMe视图");
+				leaf.view.onOpen();
+			}
+		}, 100);
 	}
 }
 
