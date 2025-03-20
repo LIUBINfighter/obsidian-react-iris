@@ -50,7 +50,10 @@ export const ChatComponent: React.FC<ChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const aiServiceRef = useRef<AIService | null>(null);
-  
+  const [serviceType, setServiceType] = useState<AIServiceType>(
+    plugin?.getAIServiceConfig().type || 'langchain'
+  );
+
   // 初始化AI服务
   useEffect(() => {
     if (plugin) {
@@ -204,6 +207,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
       // 是否使用流式处理
       const useStreaming = true;
       
+      console.log('开始请求AI响应...');
+      
       if (useStreaming) {
         // 使用流式处理
         setIsStreaming(true);
@@ -213,29 +218,34 @@ export const ChatComponent: React.FC<ChatProps> = ({
             systemPrompt: plugin?.getAIServiceConfig().systemPrompt,
           },
           (response: AIResponseStream) => {
+            // 确保即使内容很短也会显示
+            console.log('收到响应更新:', response.content.length, '字符');
             setAiResponse(response.content);
             
             // 更新临时消息的内容
-            const updatedMessagesWithResponse = messagesWithTemp.map(msg => 
-              msg.id === tempAiMessage.id 
-                ? { ...msg, content: response.content }
-                : msg
-            );
-            setMessages(updatedMessagesWithResponse);
+            setMessages(prevMessages => {
+              return prevMessages.map(msg => 
+                msg.id === tempAiMessage.id 
+                  ? { ...msg, content: response.content }
+                  : msg
+              );
+            });
             
             // 如果响应已完成，保存聊天记录
             if (response.isComplete) {
+              console.log('响应完成，保存聊天记录');
               setIsStreaming(false);
               setIsLoading(false);
               
-              // 使用最终响应更新消息
-              const finalMessages = updatedMessagesWithResponse;
-              
-              // 保存最终聊天记录
+              // 在响应完成时保存聊天记录
               const finalSession: ChatSession = {
                 id: sessionId,
                 title: '聊天会话',
-                messages: finalMessages,
+                messages: messagesWithTemp.map(msg => 
+                  msg.id === tempAiMessage.id 
+                    ? { ...msg, content: response.content }
+                    : msg
+                ),
                 createdAt: Date.now(),
                 updatedAt: Date.now()
               };
@@ -271,7 +281,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
         await saveChatSessionToFile(app, sessionId, finalSession);
       }
     } catch (error) {
-      console.error('AI请求失败:', error);
+      console.error('AI请求处理错误:', error);
       
       // 显示错误提示
       new Notice(`AI响应失败: ${error.message}`, 5000);
@@ -302,8 +312,33 @@ export const ChatComponent: React.FC<ChatProps> = ({
       await saveChatSessionToFile(app, sessionId, errorSession);
     }
   };
-  
-  // 取消AI响应
+
+  // 切换服务类型
+  const toggleService = () => {
+    const newType = serviceType === 'langchain' ? 'ollama' : 'langchain';
+    setServiceType(newType);
+    
+    // 重新初始化服务
+    if (plugin) {
+      try {
+        aiServiceRef.current = AIServiceFactory.createService(
+          newType,
+          {
+            baseUrl: plugin.getAIServiceConfig().baseUrl,
+            modelName: plugin.getAIServiceConfig().modelName,
+            systemPrompt: plugin.getAIServiceConfig().systemPrompt,
+            temperature: plugin.getAIServiceConfig().temperature,
+            maxTokens: plugin.getAIServiceConfig().maxTokens
+          }
+        );
+        new Notice(`已切换到 ${newType} 服务`);
+      } catch (error) {
+        console.error('服务切换失败:', error);
+        new Notice('服务切换失败: ' + error.message);
+      }
+    }
+  };
+
   const handleCancelResponse = () => {
     if (aiServiceRef.current && (isLoading || isStreaming)) {
       aiServiceRef.current.cancelRequest();
@@ -426,9 +461,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
           fontSize: '12px',
           color: 'var(--text-muted)'
         }}>
-          <span>
-            {new Date(message.timestamp).toLocaleTimeString()}
-          </span>
+          <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
           {!isUser && !message.favorite && (
             <button 
               onClick={() => handleAddToInbox(message)}
@@ -472,15 +505,15 @@ export const ChatComponent: React.FC<ChatProps> = ({
       backgroundColor: 'var(--background-primary)',
       borderRadius: '5px',
       border: '1px solid var(--background-modifier-border)'
-    }}></div>
-  {/* 聊天区域标题 */}
+    }}>
+      {/* 聊天区域标题 */}
       <div className="chat-header" style={{
         padding: '12px 16px',
         borderBottom: '1px solid var(--background-modifier-border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
-      }}></div>
+      }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button 
             onClick={toggleLeftSidebar}
@@ -501,32 +534,53 @@ export const ChatComponent: React.FC<ChatProps> = ({
               fontSize: '14px'
             }}
             className={leftSidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
-          ></button>
+          >
             {leftSidebarVisible ? '◀' : '▶'}
           </button>
           <h3 style={{ margin: 0 }}>聊天会话</h3>
         </div>
-        <button 
-          onClick={toggleSidebar}
-          aria-label={sidebarVisible ? '隐藏右侧边栏' : '显示右侧边栏'}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-normal)',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            width: '28px',
-            height: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px'
-          }}
-          className={sidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
-        >
-          {sidebarVisible ? '▶' : '◀'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ margin: '0 10px', fontSize: '12px', color: 'var(--text-muted)' }}>
+            服务: {serviceType}
+          </span>
+          <button 
+            onClick={toggleService}
+            disabled={isLoading || isStreaming}
+            style={{
+              fontSize: '12px',
+              padding: '2px 6px',
+              marginLeft: '4px',
+              backgroundColor: 'var(--background-modifier-border)',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'var(--text-normal)',
+              cursor: 'pointer'
+            }}
+          >
+            切换
+          </button>
+          <button 
+            onClick={toggleSidebar}
+            aria-label={sidebarVisible ? '隐藏右侧边栏' : '显示右侧边栏'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-normal)',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px'
+            }}
+            className={sidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
+          >
+            {sidebarVisible ? '▶' : '◀'}
+          </button>
+        </div>
       </div>
       
       {/* 消息列表 */}
@@ -543,12 +597,12 @@ export const ChatComponent: React.FC<ChatProps> = ({
       
       {/* 输入区域 */}
       <div className="chat-input-area" style={{
-        padding: '16px',
+        padding: '12px 16px',
         borderTop: '1px solid var(--background-modifier-border)',
         display: 'flex',
         flexDirection: 'column'
       }}>
-        <textarea
+        <textarea 
           ref={inputRef}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
@@ -559,20 +613,19 @@ export const ChatComponent: React.FC<ChatProps> = ({
             width: '100%',
             minHeight: '60px',
             maxHeight: '120px',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            border: '1px solid var(--background-modifier-border)',
-            backgroundColor: 'var(--background-primary-alt)',
-            color: 'var(--text-normal)',
-            resize: 'vertical',
-            fontFamily: 'inherit',
             fontSize: 'inherit',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            color: 'var(--text-normal)',
+            backgroundColor: 'var(--background-primary-alt)',
+            border: '1px solid var(--background-modifier-border)',
+            borderRadius: '4px',
+            padding: '8px 12px',
             opacity: (isLoading || isStreaming) ? 0.7 : 1
           }}
         />
-        
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}></div>
-          {(isLoading || isStreaming) && (
+        {(isLoading || isStreaming) && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button
               onClick={handleCancelResponse}
               style={{
@@ -587,7 +640,9 @@ export const ChatComponent: React.FC<ChatProps> = ({
             >
               取消响应
             </button>
-          )}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
           <button
             onClick={handleSendMessage}
             disabled={isLoading || isStreaming || !inputValue.trim()}
@@ -600,7 +655,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
               cursor: (isLoading || isStreaming || !inputValue.trim()) ? 'not-allowed' : 'pointer',
               opacity: (isLoading || isStreaming || !inputValue.trim()) ? 0.7 : 1
             }}
-          ></button>
+          >
             {isLoading ? '思考中...' : isStreaming ? '生成中...' : '发送'}
           </button>
         </div>

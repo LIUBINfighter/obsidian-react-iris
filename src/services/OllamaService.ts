@@ -15,7 +15,7 @@ export class OllamaService implements AIService {
   
   constructor(options: OllamaOptions) {
     this.baseUrl = options.baseUrl || 'http://localhost:11434';
-    this.modelName = options.modelName || 'deepseek-r1:7b';
+    this.modelName = options.modelName || 'deepseek-r1:latest';
     this.options = options;
   }
   

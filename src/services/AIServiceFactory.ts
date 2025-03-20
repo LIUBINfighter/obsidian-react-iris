@@ -1,8 +1,9 @@
 import { AIService, AIServiceOptions } from './AIService';
 import { OllamaService, OllamaOptions } from './OllamaService';
+import { LangChainService, LangChainOptions } from './LangChainService';
 import { MockAIService } from './MockAIService';
 
-export type AIServiceType = 'ollama' | 'mock';
+export type AIServiceType = 'ollama' | 'langchain' | 'mock';
 
 export class AIServiceFactory {
   /**
@@ -15,6 +16,8 @@ export class AIServiceFactory {
     switch (type) {
       case 'ollama':
         return new OllamaService(options as OllamaOptions);
+      case 'langchain':
+        return new LangChainService(options as LangChainOptions);
       case 'mock':
         return new MockAIService(options);
       default:
