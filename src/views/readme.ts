@@ -26,6 +26,7 @@ export class ReadMeView extends ItemView {
   sidebarVisible: boolean = true; // 侧边栏可见性状态
   leftSidebarVisible: boolean = true; // 左侧边栏可见性状态
   sidebarRef = React.createRef<any>(); // 修改为any类型，以避免TypeScript警告
+  currentSessionId: string = 'default'; // 添加当前会话ID
 
   constructor(leaf: WorkspaceLeaf, plugin?: ReactIris) {
     super(leaf);
@@ -165,6 +166,24 @@ export class ReadMeView extends ItemView {
       console.error("无法访问侧边栏引用，无法添加收藏");
     }
   }
+
+  // 切换会话
+  handleSelectSession = (sessionId: string) => {
+    console.log(`切换到会话: ${sessionId}`);
+    this.currentSessionId = sessionId;
+    // 重新渲染组件以反映会话变化
+    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
+  }
+
+  // 创建新会话
+  handleCreateNewSession = () => {
+    // 生成唯一ID作为新会话ID
+    const newSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    console.log(`创建新会话: ${newSessionId}`);
+    this.currentSessionId = newSessionId;
+    // 重新渲染组件以反映会话变化
+    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
+  }
   
   // 根据当前选项卡渲染相应的React组件
   renderReactComponent(container: Element) {
@@ -295,12 +314,15 @@ function sayHello(name) {
               height: '100%' 
             } 
           }, [
-            // 左侧边栏组件
+            // 左侧边栏组件，传递会话相关的props
             React.createElement(LeftSidebarComponent, {
               key: 'left-sidebar',
               app: this.app,
               visible: this.leftSidebarVisible,
-              plugin: this.plugin
+              plugin: this.plugin,
+              currentSessionId: this.currentSessionId,
+              onSelectSession: this.handleSelectSession,
+              onCreateNewSession: this.handleCreateNewSession
             }),
             
             // 聊天主界面
@@ -319,7 +341,8 @@ function sayHello(name) {
                 toggleSidebar: this.toggleSidebar,
                 leftSidebarVisible: this.leftSidebarVisible,
                 toggleLeftSidebar: this.toggleLeftSidebar,
-                plugin: this.plugin
+                plugin: this.plugin,
+                sessionId: this.currentSessionId // 传递当前会话ID
               })
             ),
             
@@ -333,7 +356,7 @@ function sayHello(name) {
             })
           ])
         );
-        console.log("Chat组件已渲染");
+        console.log("Chat组件已渲染，会话ID:", this.currentSessionId);
       }
     } catch (error) {
       console.error("渲染React组件时出错:", error);

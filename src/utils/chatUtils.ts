@@ -159,3 +159,77 @@ export async function deleteChatSession(app: App, sessionId: string): Promise<vo
     throw error;
   }
 }
+
+/**
+ * 创建新的聊天会话
+ * @param app Obsidian应用实例
+ * @param sessionId 会话ID
+ * @param title 会话标题，默认为"新聊天"
+ * @returns 创建的会话
+ */
+export async function createNewChatSession(
+  app: App, 
+  sessionId: string, 
+  title: string = '新聊天'
+): Promise<ChatSession> {
+  try {
+    // 创建初始消息
+    const initialMessage: Message = {
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+      content: '你好，我是AI助手。请问有什么可以帮助你的吗？',
+      timestamp: Date.now(),
+      sender: 'assistant',
+      favorite: false
+    };
+    
+    // 创建新会话
+    const newSession: ChatSession = {
+      id: sessionId,
+      title,
+      messages: [initialMessage],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    
+    // 保存会话
+    await saveChatSessionToFile(app, sessionId, newSession);
+    
+    return newSession;
+  } catch (error) {
+    console.error('创建新聊天会话失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 更新聊天会话标题
+ * @param app Obsidian应用实例
+ * @param sessionId 会话ID
+ * @param newTitle 新标题
+ */
+export async function updateChatSessionTitle(
+  app: App, 
+  sessionId: string, 
+  newTitle: string
+): Promise<void> {
+  try {
+    // 加载会话
+    const session = await loadChatSessionFromFile(app, sessionId);
+    if (!session) {
+      throw new Error(`会话不存在: ${sessionId}`);
+    }
+    
+    // 更新标题
+    const updatedSession = {
+      ...session,
+      title: newTitle,
+      updatedAt: Date.now()
+    };
+    
+    // 保存会话
+    await saveChatSessionToFile(app, sessionId, updatedSession);
+  } catch (error) {
+    console.error('更新聊天会话标题失败:', error);
+    throw error;
+  }
+}

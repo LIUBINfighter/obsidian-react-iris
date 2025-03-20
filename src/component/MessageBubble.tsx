@@ -1,8 +1,13 @@
 import React from 'react';
 import { Message } from './Chat';
+import { formatResponseTime } from '../utils/tokenUtils';
 
 interface MessageBubbleProps {
-  message: Message;
+  message: Message & {
+    responseTime?: number;
+    tokenCount?: number;
+    favorite?: boolean;
+  };
   onAddToInbox: (message: Message) => void;
 }
 
@@ -61,38 +66,71 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
       
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: isUser ? 'flex-end' : 'flex-start',
         marginTop: '4px',
         fontSize: '12px',
         color: 'var(--text-muted)'
       }}>
-        <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
-        {!isUser && !message.favorite && (
-          <button 
-            onClick={() => onAddToInbox(message)}
-            style={{
-              marginLeft: '8px',
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-accent)',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '12px'
-            }}
-            aria-label="添加到收藏"
-          >
-            添加到收藏
-          </button>
-        )}
-        {!isUser && message.favorite && (
-          <span style={{
-            marginLeft: '8px',
-            color: 'var(--text-accent)',
-            fontSize: '12px'
-          }}>
-            ✓ 已收藏
-          </span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+          
+          {!isUser && message.responsetime !== undefined && message.responsetime > 0 && (
+            <span style={{ 
+              color: 'var(--text-faint)',
+              fontSize: '11px'
+            }}>
+              响应: {formatResponseTime(message.responsetime)}
+            </span>
+          )}
+          
+          {!isUser && message.tokencount !== undefined && message.tokencount > 0 && (
+            <span style={{ 
+              color: 'var(--text-faint)',
+              fontSize: '11px'
+            }}>
+              {message.tokencount} tokens
+            </span>
+          )}
+        </div>
+        
+        {!isUser && (
+          <div style={{ marginTop: '4px' }}>
+            {!message.favorite ? (
+              <button 
+                onClick={() => onAddToInbox(message)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-accent)',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span style={{ fontSize: '14px' }}>★</span> 收藏
+              </button>
+            ) : (
+              <span style={{
+                color: 'var(--text-accent)',
+                fontSize: '12px',
+                padding: '2px 6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span style={{ fontSize: '14px' }}>★</span> 已收藏
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>

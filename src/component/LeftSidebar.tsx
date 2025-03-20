@@ -1,14 +1,25 @@
 import React from 'react';
 import { App } from 'obsidian';
 import ReactIris from '../main';
+import { ChatSessionList } from './ChatSessionList';
 
 interface LeftSidebarProps {
   app: App;
   visible: boolean;
   plugin?: ReactIris;
+  currentSessionId: string; // 添加当前会话ID
+  onSelectSession: (sessionId: string) => void; // 添加会话选择回调
+  onCreateNewSession: () => void; // 添加创建新会话回调
 }
 
-export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ app, visible, plugin }) => {
+export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ 
+  app, 
+  visible, 
+  plugin,
+  currentSessionId,
+  onSelectSession,
+  onCreateNewSession
+}) => {
   if (!visible) return null;
   
   return (
@@ -28,7 +39,7 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ app, visible,
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h4 style={{ margin: 0 }}>左侧边栏</h4>
+        <h4 style={{ margin: 0 }}>聊天会话</h4>
       </div>
       
       <div className="left-sidebar-content" style={{
@@ -36,13 +47,13 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ app, visible,
         overflowY: 'auto',
         padding: '16px'
       }}>
-        <div style={{
-          padding: '20px',
-          textAlign: 'center',
-          color: 'var(--text-muted)'
-        }}>
-          左侧边栏内容区域
-        </div>
+        {/* 会话列表组件 */}
+        <ChatSessionList 
+          app={app}
+          currentSessionId={currentSessionId}
+          onSelectSession={onSelectSession}
+          onCreateNewSession={onCreateNewSession}
+        />
       </div>
     </div>
   );

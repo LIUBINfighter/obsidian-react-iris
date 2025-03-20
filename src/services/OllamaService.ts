@@ -68,13 +68,19 @@ export class OllamaService implements AIService {
       }
       
       const data = await response.json();
+      const responseContent = data.message.content;
+      
+      // 计算token数量
+      const tokenCount = estimateTokenCount(responseContent);
       
       return {
         id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-        content: data.message.content,
+        content: responseContent,
         timestamp: Date.now(),
         sender: 'assistant',
-        favorite: false
+        favorite: false,
+        tokencount: tokenCount,
+        responsetime: data.total_duration || 0 // Ollama API可能提供总耗时
       };
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -86,6 +92,7 @@ export class OllamaService implements AIService {
       this.controller = null;
     }
   }
+  
   
   async sendStreamingRequest(
     options: AIRequestOptions,

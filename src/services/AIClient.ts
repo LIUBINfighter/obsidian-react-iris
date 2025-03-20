@@ -4,6 +4,7 @@ import { Message, ChatSession } from '../component/Chat';
 import ReactIris from '../main';
 import { App, Notice } from 'obsidian';
 import { saveChatSessionToFile, saveChatSessionToFileWithDebounce } from '../utils/chatUtils';
+import { estimateTokenCount } from '../utils/tokenUtils';
 
 /**
  * AI客户端 - 处理与AI服务相关的逻辑
@@ -110,8 +111,13 @@ export class AIClient {
       content: '',
       timestamp: Date.now(),
       sender: 'assistant',
-      favorite: false
+      favorite: false,
+      responsetime: 0, // 初始响应时间
+      tokencount: 0    // 初始token计数
     };
+    
+    // 记录开始时间
+    const startTime = Date.now();
     
     // 更新消息列表，添加临时消息
     const messagesWithTemp = [...messages, tempAiMessage];
@@ -125,13 +131,23 @@ export class AIClient {
           systemPrompt: this.plugin?.getAIServiceConfig().systemPrompt,
         },
         (response: AIResponseStream) => {
+          // 计算当前响应时间和token数
+          const currentTime = Date.now();
+          const responseTime = currentTime - startTime;
+          const tokenCount = estimateTokenCount(response.content);
+          
           // 更新流内容
           onStreamUpdate(response.content, response.isComplete);
           
           // 使用函数式更新临时消息内容
           const updatedMessages = messagesWithTemp.map(msg => 
             msg.id === tempAiMessage.id 
-              ? { ...msg, content: response.content }
+              ? { 
+                  ...msg, 
+                  content: response.content,
+                  responsetime: responseTime,
+                  tokencount: tokenCount
+                }
               : msg
           );
           onMessagesUpdate(updatedMessages);
