@@ -165,8 +165,8 @@ export class ReadMeView extends ItemView {
         // 如果是移除操作
         this.sidebarRef.current.removeFromFavorites(message.id);
       } else {
-        // 如果是添加操作
-        this.sidebarRef.current.addToFavorites(message);
+        // 如果是添加操作，传递当前会话ID
+        this.sidebarRef.current.addToFavorites(message, this.currentSessionId);
       }
     } else {
       console.error("无法访问侧边栏引用，无法更新收藏");

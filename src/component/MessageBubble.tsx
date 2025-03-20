@@ -31,7 +31,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
         display: 'flex', 
         flexDirection: isUser ? 'row-reverse' : 'row',
         alignItems: 'flex-start',
-        maxWidth: '80%'
+        maxWidth: '100%'
       }}>
         <div style={{
           backgroundColor: isUser ? 'var(--interactive-accent)' : 'var(--background-secondary)',

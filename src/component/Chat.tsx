@@ -326,22 +326,23 @@ export const ChatComponent: React.FC<ChatProps> = ({
       />
       
       {/* 消息列表 */}
-      <div className="chat-messages" style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {messages.map(message => (
-          <MessageBubble 
-            key={message.id}
-            message={message}
-            onAddToInbox={handleAddToInbox}
-          />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+	<div className="chat-messages" style={{
+	  flex: 1,
+	  overflowY: 'auto',
+	  padding: '16px',
+	  display: 'flex',
+	  flexDirection: 'column',
+	  width: '100%'
+	}}>
+	  {messages.map(message => (
+		<MessageBubble 
+		key={message.id}
+		message={message}
+		onAddToInbox={handleAddToInbox}
+		/>
+	  ))}
+	  <div ref={messagesEndRef} />
+	</div>
       
       {/* 聊天输入 */}
       <ChatInput 

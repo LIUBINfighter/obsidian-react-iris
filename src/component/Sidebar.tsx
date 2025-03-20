@@ -3,7 +3,15 @@ import { App } from 'obsidian';
 import { InboxComponent } from './Inbox';
 import { Message } from './Chat';
 import ReactIris from '../main';
-import { saveMessageToFavorites, loadFavoritesFromStorage } from '../utils/messageUtils';
+import { 
+  loadFavorites, 
+  saveFavorites, 
+  addToFavorites, 
+  removeFromFavorites, 
+  updateFoldState, 
+  FavoriteItem,
+  migrateFromLocalStorage 
+} from '../utils/favoriteUtils';
 
 interface SidebarProps {
   app: App;
@@ -11,52 +19,61 @@ interface SidebarProps {
   plugin?: ReactIris;
 }
 
-// 使用forwardRef包装组件，确保ref正确传递
+// 更新forwardRef类型，增加切换折叠状态方法
 export const SidebarComponent = forwardRef<{
-  addToFavorites: (message: Message) => void, 
+  addToFavorites: (message: Message, sessionId?: string) => void, 
   removeFromFavorites: (messageId: string) => void
 }, SidebarProps>(
   ({ app, visible, plugin }, ref) => {
-    const [favoriteMessages, setFavoriteMessages] = useState<Message[]>([]);
+    const [favoriteMessages, setFavoriteMessages] = useState<FavoriteItem[]>([]);
     
-    // 从localStorage加载收藏消息
+    // 从文件加载收藏消息
     useEffect(() => {
-      loadFavoritesFromStorage().then(favorites => {
-        if (favorites && favorites.length > 0) {
-          setFavoriteMessages(favorites);
-        }
-      });
-    }, []);
-    
-    // 保存收藏消息到localStorage
-    const saveFavorites = (messages: Message[]) => {
-      saveMessageToFavorites(messages).catch(error => {
-        console.error('保存收藏消息失败:', error);
-      });
-    };
+      // 迁移旧数据并加载新数据
+      const initializeFavorites = async () => {
+        await migrateFromLocalStorage(app);
+        const favorites = await loadFavorites(app);
+        setFavoriteMessages(favorites);
+      };
+      
+      initializeFavorites();
+    }, [app]);
     
     // 添加消息到收藏
-    const addToFavorites = (message: Message) => {
-      // 检查消息是否已在收藏中
-      if (!favoriteMessages.some(msg => msg.id === message.id)) {
-        const updatedFavorites = [...favoriteMessages, message];
+    const handleAddToFavorites = async (message: Message, sessionId?: string) => {
+      try {
+        const updatedFavorites = await addToFavorites(app, message, sessionId);
         setFavoriteMessages(updatedFavorites);
-        saveFavorites(updatedFavorites);
+      } catch (error) {
+        console.error('添加消息到收藏失败:', error);
       }
     };
     
     // 从收藏中移除消息
-    const removeFromFavorites = (messageId: string) => {
-      const updatedFavorites = favoriteMessages.filter(msg => msg.id !== messageId);
-      setFavoriteMessages(updatedFavorites);
-      saveFavorites(updatedFavorites);
+    const handleRemoveFromFavorites = async (messageId: string) => {
+      try {
+        const updatedFavorites = await removeFromFavorites(app, messageId);
+        setFavoriteMessages(updatedFavorites);
+      } catch (error) {
+        console.error('从收藏中移除消息失败:', error);
+      }
+    };
+    
+    // 切换消息折叠状态
+    const handleToggleFold = async (messageId: string, folded: boolean) => {
+      try {
+        const updatedFavorites = await updateFoldState(app, messageId, folded);
+        setFavoriteMessages(updatedFavorites);
+      } catch (error) {
+        console.error('更新折叠状态失败:', error);
+      }
     };
 
-    // 正确使用useImperativeHandle暴露方法
+    // 暴露方法给父组件
     useImperativeHandle(ref, () => ({
-      addToFavorites,
-      removeFromFavorites
-    }), [favoriteMessages]);
+      addToFavorites: handleAddToFavorites,
+      removeFromFavorites: handleRemoveFromFavorites
+    }), [app]);
 
     if (!visible) return null;
     
@@ -72,7 +89,8 @@ export const SidebarComponent = forwardRef<{
       }}>
         <InboxComponent 
           messages={favoriteMessages} 
-          onRemove={removeFromFavorites}
+          onRemove={handleRemoveFromFavorites}
+          onToggleFold={handleToggleFold}
           app={app}
           plugin={plugin}
         />

@@ -1,33 +1,25 @@
 import React, { useState } from 'react';
 import { App, Notice } from 'obsidian';
-import { Message } from './Chat';
 import ReactIris from '../main';
 import { exportMessagesToMarkdown } from '../utils/exportUtils';
+import { FavoriteItem } from '../utils/favoriteUtils';
 
 interface InboxProps {
-  messages: Message[];
+  messages: FavoriteItem[];
   onRemove: (id: string) => void;
+  onToggleFold: (id: string, folded: boolean) => void;
   app: App;
   plugin?: ReactIris;
 }
 
-export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, plugin }) => {
+export const InboxComponent: React.FC<InboxProps> = ({ 
+  messages, 
+  onRemove, 
+  onToggleFold,
+  app, 
+  plugin 
+}) => {
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
-  // 添加折叠状态跟踪
-  const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
-  
-  // 折叠/展开消息
-  const toggleMessageCollapse = (id: string) => {
-    setCollapsedMessages(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
   
   // 切换消息选择状态
   const toggleMessageSelection = (id: string) => {
@@ -177,7 +169,8 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
           </div>
         ) : (
           messages.map(message => {
-            const isCollapsed = collapsedMessages.has(message.id);
+            // 使用消息自身的折叠状态
+            const isCollapsed = message.folded;
             const shouldOfferCollapse = isMessageLongEnough(message.content);
             
             return (
@@ -214,7 +207,10 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
                     onClick={() => toggleMessageSelection(message.id)}
                   >
                     {/* 根据折叠状态显示完整或截断的内容 */}
-                    {isCollapsed && shouldOfferCollapse ? truncateText(message.content) : message.content}
+                    {isCollapsed && shouldOfferCollapse 
+                      ? truncateText(message.content) 
+                      : message.content
+                    }
                   </div>
                   <div style={{
                     display: 'flex',
@@ -225,7 +221,7 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleMessageCollapse(message.id);
+                          onToggleFold(message.id, !isCollapsed);
                         }}
                         aria-label={isCollapsed ? "展开" : "折叠"}
                         style={{

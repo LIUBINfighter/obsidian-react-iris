@@ -19,6 +19,7 @@ main.js
 data.json
 ./chats/
 /chats/
+favorite.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
