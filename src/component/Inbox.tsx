@@ -195,7 +195,8 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
                     padding: '4px',
-                    marginLeft: '8px',
+                    marginLeft: '4px',
+					marginRight: '-8px',
                     fontSize: '14px',
                     borderRadius: '4px'
                   }}

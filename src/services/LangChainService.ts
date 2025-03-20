@@ -104,20 +104,13 @@ export class LangChainService implements AIService {
     const { messages, systemPrompt } = options;
     
     this.controller = new AbortController();
+    let isCompleteEmitted = false;
     
     try {
-      const chatModel = this.createChatModel();
-      chatModel.streaming = true;
-      
       const langchainMessages = this.convertMessages(messages, systemPrompt);
-      
-      // 使用变量捕获，确保回调使用最新值
-      let accumulatedContent = '';
-      
       console.log('开始流式请求，消息数量:', langchainMessages.length);
-      console.log('模型:', this.modelName, '基础URL:', this.baseUrl);
       
-      // 直接使用Ollama API，而不是LangChain
+      // 直接使用Ollama API
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: {
@@ -133,7 +126,8 @@ export class LangChainService implements AIService {
             } else if (msg instanceof AIMessage) {
               return { role: 'assistant', content: msg.content };
             }
-          }),
+            return null; // 添加防止未处理的消息类型
+          }).filter(Boolean), // 过滤掉可能的null值
           stream: true,
           temperature: this.options.temperature || 0.7
         }),
@@ -141,7 +135,7 @@ export class LangChainService implements AIService {
       });
       
       if (!response.ok) {
-        throw new Error(`Ollama API请求失败: ${response.status} ${response.statusText}`);
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
       }
       
       const reader = response.body?.getReader();
@@ -149,53 +143,65 @@ export class LangChainService implements AIService {
         throw new Error('无法获取响应流');
       }
       
+      // 修复：添加缺少的TextDecoder定义
       const decoder = new TextDecoder();
-      let done = false;
+      let content = '';
       
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
+      const emitComplete = () => {
+        if (!isCompleteEmitted) {
+          console.log('发送完成信号, 内容长度:', content.length);
+          onUpdate({ content, isComplete: true });
+          isCompleteEmitted = true;
+        }
+      };
+      
+      // 使用更简单的循环结构，避免嵌套过深
+      let isDone = false;
+      while (!isDone) {
+        const { done, value } = await reader.read();
         
         if (done) {
-          // 流结束时发送完成消息
-          onUpdate({ content: accumulatedContent, isComplete: true });
-          console.log('流式响应完成，总长度:', accumulatedContent.length);
+          emitComplete();
           break;
         }
         
-        // 解码接收到的数据块
         const chunk = decoder.decode(value, { stream: true });
-        console.log('收到数据块:', chunk.length);
+        const lines = chunk.split('\n').filter(line => line.trim());
         
-        try {
-          // Ollama 流式响应格式是每行一个JSON
-          const lines = chunk.split('\n').filter(line => line.trim());
-          
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line);
-              if (data.message?.content) {
-                accumulatedContent += data.message.content;
-                onUpdate({ content: accumulatedContent, isComplete: false });
-                console.log('内容更新,当前长度:', accumulatedContent.length);
-              }
-            } catch (err) {
-              console.warn('解析响应行失败:', line, err);
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            
+            if (data.message?.content) {
+              content += data.message.content;
+              onUpdate({ content, isComplete: false });
             }
+            
+            if (data.done === true) {
+              isDone = true;
+              emitComplete();
+            }
+          } catch (err) {
+            // 修复：添加错误类型，避免使用隐式any
+            console.warn('无法解析响应行:', line, err instanceof Error ? err.message : String(err));
           }
-        } catch (err) {
-          console.error('处理响应块错误:', err);
         }
       }
     } catch (error) {
-      console.error('流式请求错误:', error);
-      if (error.name === 'AbortError') {
-        console.log('流式请求已取消');
-        onUpdate({ content: '', isComplete: true });
-      } else {
-        // 抛出错误，让上层处理
-        throw error;
+      // 修复：使用明确的错误类型
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('流式处理错误:', errorMessage);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('请求已取消');
       }
+      
+      // 确保在错误时也发送完成信号
+      if (!isCompleteEmitted) {
+        onUpdate({ content: '', isComplete: true });
+      }
+      
+      throw error;
     } finally {
       this.controller = null;
     }

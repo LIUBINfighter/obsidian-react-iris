@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { App, Notice } from 'obsidian';
 import ReactIris from '../main';
-import { saveChatSessionToFile, loadChatSessionFromFile } from '../utils/chatUtils';
+import { saveChatSessionToFile, saveChatSessionToFileWithDebounce, loadChatSessionFromFile } from '../utils/chatUtils';
 import { AIServiceFactory, AIServiceType } from '../services/AIServiceFactory';
 import { AIService, AIResponseStream } from '../services/AIService';
 
@@ -175,7 +175,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
     setAiResponse('');
     setIsStreaming(false);
     
-    // 保存聊天记录
+    // 使用防抖保存聊天记录
     const currentSession: ChatSession = {
       id: sessionId,
       title: '聊天会话',
@@ -184,6 +184,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
       updatedAt: Date.now()
     };
     
+    // 立即保存用户消息
     await saveChatSessionToFile(app, sessionId, currentSession);
     
     try {
@@ -200,117 +201,161 @@ export const ChatComponent: React.FC<ChatProps> = ({
         favorite: false
       };
       
+      // 保存对临时消息ID的引用以供后续使用
+      const tempMessageId = tempAiMessage.id;
+      
       // 将临时消息添加到聊天中
       const messagesWithTemp = [...updatedMessages, tempAiMessage];
       setMessages(messagesWithTemp);
       
-      // 是否使用流式处理
-      const useStreaming = true;
-      
-      console.log('开始请求AI响应...');
-      
-      if (useStreaming) {
-        // 使用流式处理
-        setIsStreaming(true);
+      // 使用流式处理
+      setIsStreaming(true);
+      try {
         await aiServiceRef.current.sendStreamingRequest(
           {
             messages: updatedMessages,
             systemPrompt: plugin?.getAIServiceConfig().systemPrompt,
           },
           (response: AIResponseStream) => {
-            // 确保即使内容很短也会显示
-            console.log('收到响应更新:', response.content.length, '字符');
+            // 将内容更新应用到状态
             setAiResponse(response.content);
             
-            // 更新临时消息的内容
+            // 更新临时消息内容
             setMessages(prevMessages => {
-              return prevMessages.map(msg => 
-                msg.id === tempAiMessage.id 
-                  ? { ...msg, content: response.content }
-                  : msg
+              const updatedMessages = prevMessages.map(msg => 
+                msg.id === tempMessageId ? { ...msg, content: response.content } : msg
               );
+              
+              // 使用防抖保存临时更新
+              if (!response.isComplete) {
+                const updatedSession: ChatSession = {
+                  id: sessionId,
+                  title: '聊天会话',
+                  messages: updatedMessages,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now()
+                };
+                saveChatSessionToFileWithDebounce(app, sessionId, updatedSession);
+              }
+              
+              return updatedMessages;
             });
             
-            // 如果响应已完成，保存聊天记录
+            // 如果响应完成，保存最终结果
             if (response.isComplete) {
-              console.log('响应完成，保存聊天记录');
-              setIsStreaming(false);
-              setIsLoading(false);
-              
-              // 在响应完成时保存聊天记录
-              const finalSession: ChatSession = {
-                id: sessionId,
-                title: '聊天会话',
-                messages: messagesWithTemp.map(msg => 
-                  msg.id === tempAiMessage.id 
-                    ? { ...msg, content: response.content }
-                    : msg
-                ),
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-              };
-              
-              saveChatSessionToFile(app, sessionId, finalSession);
+              finishResponse(tempMessageId, response.content);
             }
           }
         );
-      } else {
-        // 使用非流式处理
-        const aiResponse = await aiServiceRef.current.sendRequest({
-          messages: updatedMessages,
-          systemPrompt: plugin?.getAIServiceConfig().systemPrompt,
-        });
-        
-        // 更新临时消息为最终响应
-        const finalMessages = messagesWithTemp.map(msg => 
-          msg.id === tempAiMessage.id ? aiResponse : msg
-        );
-        
-        setMessages(finalMessages);
+      } catch (error) {
+        console.error('流式请求失败:', error);
+        setIsStreaming(false);
         setIsLoading(false);
         
-        // 保存最终聊天记录
-        const finalSession: ChatSession = {
-          id: sessionId,
-          title: '聊天会话',
-          messages: finalMessages,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        
-        await saveChatSessionToFile(app, sessionId, finalSession);
+        // 继续抛出错误以便上层处理
+        throw error;
       }
     } catch (error) {
-      console.error('AI请求处理错误:', error);
+      handleAIError(error, updatedMessages);
+    }
+  };
+  
+  // 新增：完成响应处理函数
+  const finishResponse = (messageId: string, finalContent: string) => {
+    console.log('完成响应处理, messageId:', messageId, '内容长度:', finalContent.length);
+    
+    // 更新状态
+    setIsStreaming(false);
+    setIsLoading(false);
+    
+    // 保存最终消息版本
+    setMessages(prevMessages => {
+      const updatedMessages = prevMessages.map(msg => 
+        msg.id === messageId ? { ...msg, content: finalContent } : msg
+      );
       
-      // 显示错误提示
-      new Notice(`AI响应失败: ${error.message}`, 5000);
-      
-      // 添加错误消息到聊天
-      const errorMessage: Message = {
-        id: generateId(),
-        content: `很抱歉，处理您的请求时出现错误: ${error.message}`,
-        timestamp: Date.now(),
-        sender: 'assistant',
-        favorite: false
-      };
-      
-      const messagesWithError = [...updatedMessages, errorMessage];
-      setMessages(messagesWithError);
-      setIsLoading(false);
-      setIsStreaming(false);
-      
-      // 保存包含错误消息的聊天记录
-      const errorSession: ChatSession = {
+      // 立即保存最终版本
+      const finalSession: ChatSession = {
         id: sessionId,
         title: '聊天会话',
-        messages: messagesWithError,
+        messages: updatedMessages,
         createdAt: Date.now(),
         updatedAt: Date.now()
       };
       
-      await saveChatSessionToFile(app, sessionId, errorSession);
-    }
+      saveChatSessionToFile(app, sessionId, finalSession)
+        .then(() => console.log('聊天记录已保存 (最终版本)'))
+        .catch(err => console.error('保存聊天记录失败:', err));
+      
+      return updatedMessages;
+    });
+  };
+  
+  // 新增：处理AI错误
+  const handleAIError = (error: any, messages: Message[]) => {
+    console.error('AI请求处理错误:', error);
+    
+    // 显示错误提示
+    new Notice(`AI响应失败: ${error.message}`, 5000);
+    
+    // 添加错误消息到聊天
+    const errorMessage: Message = {
+      id: generateId(),
+      content: `很抱歉，处理您的请求时出现错误: ${error.message}`,
+      timestamp: Date.now(),
+      sender: 'assistant',
+      favorite: false
+    };
+    
+    const messagesWithError = [...messages, errorMessage];
+    setMessages(messagesWithError);
+    setIsLoading(false);
+    setIsStreaming(false);
+    
+    // 保存包含错误消息的聊天记录
+    const errorSession: ChatSession = {
+      id: sessionId,
+      title: '聊天会话',
+      messages: messagesWithError,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    
+    saveChatSessionToFile(app, sessionId, errorSession)
+      .catch(err => console.error('保存错误消息失败:', err));
+  };
+
+  // 修改为仅在需要时使用, 主要逻辑移至内联处理
+  const updateUIOnResponseComplete = (messageId: string, finalContent: string) => {
+    console.log(`更新消息完成状态: ID=${messageId}, 内容长度=${finalContent.length}`);
+    // 更新状态，关闭加载指示器
+    setIsStreaming(false);
+    setIsLoading(false);
+    
+    // 获取最新的消息状态并更新
+    setMessages(currentMessages => {
+      const updatedMessages = currentMessages.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content: finalContent }
+          : msg
+      );
+      
+      // 保存最终聊天记录
+      const finalSession: ChatSession = {
+        id: sessionId,
+        title: '聊天会话',
+        messages: updatedMessages,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      // 确保我们已经保存
+      saveChatSessionToFile(app, sessionId, finalSession)
+        .then(() => console.log('聊天记录已保存, 消息数量:', updatedMessages.length))
+        .catch(err => console.error('保存聊天记录失败:', err));
+      
+      return updatedMessages;
+    });
   };
 
   // 切换服务类型
@@ -624,17 +669,26 @@ export const ChatComponent: React.FC<ChatProps> = ({
             opacity: (isLoading || isStreaming) ? 0.7 : 1
           }}
         />
+        
+        {/* 取消响应按钮 */}
         {(isLoading || isStreaming) && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+            <span style={{ 
+              color: 'var(--text-muted)', 
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              {isStreaming ? '正在生成回复...' : '正在思考...'}
+            </span>
             <button
               onClick={handleCancelResponse}
               style={{
-                padding: '8px 16px',
+                padding: '6px 12px',
                 backgroundColor: 'var(--text-error)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                marginRight: '8px',
                 cursor: 'pointer'
               }}
             >
@@ -642,7 +696,13 @@ export const ChatComponent: React.FC<ChatProps> = ({
             </button>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+        
+        {/* 发送按钮 */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          marginTop: isLoading || isStreaming ? '4px' : '8px' 
+        }}>
           <button
             onClick={handleSendMessage}
             disabled={isLoading || isStreaming || !inputValue.trim()}

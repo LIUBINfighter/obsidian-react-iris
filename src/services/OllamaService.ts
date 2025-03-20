@@ -94,6 +94,7 @@ export class OllamaService implements AIService {
     const { messages, systemPrompt, temperature = 0.7, maxTokens } = options;
     
     this.controller = new AbortController();
+    let isCompleteEmitted = false;
     
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -123,49 +124,55 @@ export class OllamaService implements AIService {
       
       const decoder = new TextDecoder();
       let content = '';
-      let isComplete = false;
       
-      while (!isComplete) {
+      const emitComplete = () => {
+        if (!isCompleteEmitted) {
+          onUpdate({ content, isComplete: true });
+          isCompleteEmitted = true;
+        }
+      };
+      
+      while (true) {
         const { done, value } = await reader.read();
         
         if (done) {
-          isComplete = true;
-          onUpdate({ content, isComplete });
+          emitComplete();
           break;
         }
         
         const chunk = decoder.decode(value, { stream: true });
-        try {
-          // Ollama返回的是多个JSON对象，每行一个
-          const lines = chunk.split('\n').filter(line => line.trim());
-          
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line);
-              
-              if (data.message?.content) {
-                content += data.message.content;
-                onUpdate({ content, isComplete: false });
-              }
-              
-              if (data.done) {
-                isComplete = true;
-              }
-            } catch (e) {
-              console.warn('无法解析JSON响应:', line);
+        const lines = chunk.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            
+            if (data.message?.content) {
+              content += data.message.content;
+              onUpdate({ content, isComplete: false });
             }
+            
+            if (data.done === true) {
+              emitComplete();
+            }
+          } catch (e) {
+            console.warn('无法解析JSON响应:', line);
           }
-        } catch (e) {
-          console.error('处理响应块时出错:', e);
         }
       }
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('流式请求已取消');
-        onUpdate({ content, isComplete: true });
       } else {
-        throw error;
+        console.error('Ollama流式请求错误:', error);
       }
+      
+      // 确保在错误时也发送完成信号
+      if (!isCompleteEmitted) {
+        onUpdate({ content: '', isComplete: true });
+      }
+      
+      throw error;
     } finally {
       this.controller = null;
     }
