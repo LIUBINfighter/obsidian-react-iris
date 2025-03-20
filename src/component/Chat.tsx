@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { App, Notice } from 'obsidian';
 import ReactIris from '../main';
-import { saveChatSessionToFile, loadChatSessionFromFile } from '../utils/chatUtils';
+import { saveChatSessionToFile, loadChatSessionFromFile, updateChatSessionTitle } from '../utils/chatUtils';
 import { AIServiceType } from '../services/AIServiceFactory';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHeader } from './ChatHeader';
 import { AIClient } from '../services/AIClient';
+import { actionManager } from '../actions';
+import { ActionContext } from '../actions/ActionTypes';
 
 export interface Message {
   id: string;
   content: string;
   timestamp: number;
-  sender: 'user' | 'assistant';
+  sender: 'user' | 'assistant' | 'system'; // 添加 system 角色
   favorite: boolean;
   responsetime?: number; // AI响应时间（毫秒）
   tokencount?: number;   // 消息的token数量
@@ -194,12 +196,12 @@ export const ChatComponent: React.FC<ChatProps> = ({
     // 显示错误提示
     new Notice(`AI响应失败: ${error.message}`, 5000);
     
-    // 添加错误消息到聊天
+    // 添加错误消息到聊天 - 现在使用 system 角色
     const errorMessage: Message = {
       id: generateId(),
-      content: `很抱歉，处理您的请求时出现错误: ${error.message}`,
+      content: `❌ 错误: ${error.message}`,
       timestamp: Date.now(),
-      sender: 'assistant',
+      sender: 'system', // 改为 system
       favorite: false
     };
     
@@ -228,12 +230,12 @@ export const ChatComponent: React.FC<ChatProps> = ({
       setIsLoading(false);
       setIsStreaming(false);
       
-      // 添加取消消息
+      // 添加取消消息 - 使用 system 角色
       const cancelMessage: Message = {
         id: generateId(),
-        content: '响应已取消',
+        content: '🛑 响应已取消',
         timestamp: Date.now(),
-        sender: 'assistant',
+        sender: 'system', // 改为 system
         favorite: false
       };
       
@@ -299,6 +301,51 @@ export const ChatComponent: React.FC<ChatProps> = ({
       onAddToInbox({ ...message, favorite: false, action: 'remove' });
     }
   };
+
+  // 处理命令执行
+  const handleExecuteCommand = async (command: string) => {
+    const action = actionManager.getAction(command);
+    if (!action) {
+      new Notice(`未知命令: ${command}`);
+      return;
+    }
+    
+    // 创建执行上下文
+    const context: ActionContext = {
+      app,
+      plugin,
+      sessionId,
+      messages,
+      commandText: inputValue,
+      updateMessages: setMessages,
+      updateSessionTitle: async (sid: string, title: string) => {
+        await updateChatSessionTitle(app, sid, title);
+        // 重新加载会话或在本地更新标题
+        const session = await loadChatSessionFromFile(app, sid);
+        if (session) {
+          await saveChatSessionToFile(app, sid, {
+            ...session,
+            title
+          });
+        }
+      }
+    };
+    
+    try {
+      // 执行命令
+      const result = await action.execute(context);
+      
+      // 清空输入框
+      setInputValue('');
+      
+      if (!result.success) {
+        new Notice(`命令执行失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error(`执行命令时出错: ${command}`, error);
+      new Notice(`执行命令出错: ${error.message}`);
+    }
+  };
   
   return (
     <div className="chat-container" style={{
@@ -350,8 +397,11 @@ export const ChatComponent: React.FC<ChatProps> = ({
         onChange={setInputValue}
         onSend={handleSendMessage}
         onCancel={handleCancelResponse}
+        onExecuteCommand={handleExecuteCommand}
         isLoading={isLoading}
         isStreaming={isStreaming}
+        app={app}
+        plugin={plugin}
       />
     </div>
   );

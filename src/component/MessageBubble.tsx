@@ -16,6 +16,48 @@ interface MessageBubbleProps {
  */
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToInbox }) => {
   const isUser = message.sender === 'user';
+  const isSystem = message.sender === 'system';
+  
+  // 系统消息使用特殊样式
+  if (isSystem) {
+    return (
+      <div 
+        className="chat-message system-message"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          marginBottom: '16px',
+          width: '100%'
+        }}
+      >
+        <div style={{
+          backgroundColor: 'var(--background-modifier-border)',
+          color: 'var(--text-normal)',
+          padding: '8px 12px',
+          borderRadius: '12px',
+          fontSize: '13px',
+          maxWidth: '80%',
+          textAlign: 'center'
+        }}>
+          {message.content}
+        </div>
+        <div style={{
+          fontSize: '10px',
+          color: 'var(--text-muted)',
+          marginTop: '4px'
+        }}>
+          {new Date(message.timestamp).toLocaleTimeString()}
+          
+          {message.responsetime !== undefined && message.responsetime > 0 && (
+            <span style={{ marginLeft: '8px' }}>
+              {formatResponseTime(message.responsetime)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div 

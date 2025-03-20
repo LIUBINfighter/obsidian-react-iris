@@ -101,7 +101,15 @@ export class AIClient {
     onMessagesUpdate: (messages: Message[]) => void
   ): Promise<boolean> {
     if (!this.service) {
-      new Notice('AI服务未初始化');
+      // 添加系统消息而不是通知
+      const errorMessage: Message = {
+        id: this.generateId(),
+        content: '❌ AI服务未初始化',
+        timestamp: Date.now(),
+        sender: 'system',
+        favorite: false
+      };
+      onMessagesUpdate([...messages, errorMessage]);
       return false;
     }
     
@@ -182,6 +190,17 @@ export class AIClient {
       return true;
     } catch (error) {
       console.error('发送消息失败:', error);
+      
+      // 添加错误消息
+      const errorMessage: Message = {
+        id: this.generateId(),
+        content: `❌ 发送失败: ${error.message || '未知错误'}`,
+        timestamp: Date.now(),
+        sender: 'system',
+        favorite: false
+      };
+      onMessagesUpdate([...messages, errorMessage]);
+      
       return false;
     }
   }
