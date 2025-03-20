@@ -25,6 +25,8 @@ interface ChatProps {
   sessionId?: string;
   sidebarVisible: boolean;
   toggleSidebar: () => void;
+  leftSidebarVisible: boolean;
+  toggleLeftSidebar: () => void;
   plugin?: ReactIris; // 添加plugin参数以访问vault
 }
 
@@ -34,6 +36,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
   sessionId = 'default', 
   sidebarVisible, 
   toggleSidebar,
+  leftSidebarVisible,
+  toggleLeftSidebar,
   plugin
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -291,6 +295,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
       flexDirection: 'column',
       height: '100%',
       maxHeight: '100%',
+      minHeight: '500px',
       overflow: 'hidden',
       backgroundColor: 'var(--background-primary)',
       borderRadius: '5px',
@@ -304,20 +309,51 @@ export const ChatComponent: React.FC<ChatProps> = ({
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h3 style={{ margin: 0 }}>聊天会话</h3>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button 
+            onClick={toggleLeftSidebar}
+            aria-label={leftSidebarVisible ? '隐藏左侧边栏' : '显示左侧边栏'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-normal)',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              marginRight: '8px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px'
+            }}
+            className={leftSidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
+          >
+            {leftSidebarVisible ? '◀' : '▶'}
+          </button>
+          <h3 style={{ margin: 0 }}>聊天会话</h3>
+        </div>
         <button 
           onClick={toggleSidebar}
-          aria-label={sidebarVisible ? '隐藏侧边栏' : '显示侧边栏'}
+          aria-label={sidebarVisible ? '隐藏右侧边栏' : '显示右侧边栏'}
           style={{
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             color: 'var(--text-normal)',
             padding: '4px 8px',
-            borderRadius: '4px'
+            borderRadius: '4px',
+            width: '28px',
+            height: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px'
           }}
+          className={sidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
         >
-          {sidebarVisible ? '隐藏收藏' : '显示收藏'}
+          {sidebarVisible ? '▶' : '◀'}
         </button>
       </div>
       

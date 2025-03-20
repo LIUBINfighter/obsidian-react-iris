@@ -6,6 +6,7 @@ import { EditorComponent } from '../component/MarkdownEditor';
 import { SettingComponent } from '../component/Setting';
 import { ChatComponent, Message } from '../component/Chat';
 import { SidebarComponent } from '../component/Sidebar';
+import { LeftSidebarComponent } from '../component/LeftSidebar';
 import ReactIris from '../main';
 
 // 定义选项卡类型
@@ -23,6 +24,7 @@ export class ReadMeView extends ItemView {
   reactContainer: HTMLElement | null = null;
   plugin: ReactIris | null = null; // 添加插件实例引用
   sidebarVisible: boolean = true; // 侧边栏可见性状态
+  leftSidebarVisible: boolean = true; // 左侧边栏可见性状态
   sidebarRef = React.createRef<any>(); // 修改为any类型，以避免TypeScript警告
 
   constructor(leaf: WorkspaceLeaf, plugin?: ReactIris) {
@@ -144,6 +146,13 @@ export class ReadMeView extends ItemView {
   // 切换侧边栏可见性
   toggleSidebar = () => {
     this.sidebarVisible = !this.sidebarVisible;
+    // 重新渲染组件以反映侧边栏状态变化
+    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
+  }
+  
+  // 切换左侧边栏可见性
+  toggleLeftSidebar = () => {
+    this.leftSidebarVisible = !this.leftSidebarVisible;
     // 重新渲染组件以反映侧边栏状态变化
     this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
   }
@@ -277,7 +286,7 @@ function sayHello(name) {
         );
         console.log("Setting组件已渲染");
       } else if (this.activeTab === TabType.CHAT) {
-        // 渲染聊天界面，包括聊天组件和侧边栏
+        // 渲染聊天界面，包括左侧边栏、聊天组件和右侧边栏
         this.root.render(
           React.createElement('div', { 
             style: { 
@@ -286,6 +295,14 @@ function sayHello(name) {
               height: '100%' 
             } 
           }, [
+            // 左侧边栏组件
+            React.createElement(LeftSidebarComponent, {
+              key: 'left-sidebar',
+              app: this.app,
+              visible: this.leftSidebarVisible,
+              plugin: this.plugin
+            }),
+            
             // 聊天主界面
             React.createElement('div', { 
               key: 'chat-main',
@@ -297,20 +314,22 @@ function sayHello(name) {
             }, 
               React.createElement(ChatComponent, {
                 app: this.app,
-                onAddToInbox: this.handleAddToInbox, // 使用类方法传递
+                onAddToInbox: this.handleAddToInbox,
                 sidebarVisible: this.sidebarVisible,
                 toggleSidebar: this.toggleSidebar,
-                plugin: this.plugin // 传递插件实例，便于访问vault
+                leftSidebarVisible: this.leftSidebarVisible,
+                toggleLeftSidebar: this.toggleLeftSidebar,
+                plugin: this.plugin
               })
             ),
             
-            // 侧边栏组件，确保ref正确传递
+            // 右侧边栏组件
             React.createElement(SidebarComponent, {
               key: 'chat-sidebar',
               app: this.app,
               visible: this.sidebarVisible,
-              ref: this.sidebarRef, // 正确传递ref
-              plugin: this.plugin // 传递插件实例
+              ref: this.sidebarRef,
+              plugin: this.plugin
             })
           ])
         );
