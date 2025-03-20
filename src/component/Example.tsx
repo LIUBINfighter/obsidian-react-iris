@@ -52,9 +52,9 @@ export const ExampleReactComponent: React.FC<ExampleReactComponentProps> = ({ na
           点击我
         </button>
       </div>
-      <p className="info" style={{ fontSize: "0.9em", color: "#666" }}>
+	<p className="info" style={{ fontSize: "0.9em", color: "var(--text-muted)" }}>
         这是一个简单的React组件，演示了如何在Obsidian插件中使用React。
-      </p>
+	</p>
     </div>
   );
 };
