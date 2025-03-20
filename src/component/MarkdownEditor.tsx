@@ -54,58 +54,85 @@ export const EditorComponent: React.FC<EditorComponentProps> = ({
       // 清空容器
       previewRef.current.innerHTML = '';
       
-      // 使用Obsidian的MarkdownRenderer进行渲染
-      await MarkdownRenderer.renderMarkdown(
-        text,
-        previewRef.current,
-        '',
-        app.workspace.getActiveViewOfType(null) || null
-      );
-    }
-  };
-  
-  // 搜索功能实现 - 使用Obsidian Vault API
-  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    
-    if (query.trim() === '') {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
-    
-    setIsSearching(true);
-    setShowDropdown(true);
-    
-    try {
-      // 获取所有Markdown文件
-      const markdownFiles = app.vault.getMarkdownFiles();
-      
-      // 过滤符合搜索条件的文件
-      const filtered = markdownFiles.filter(file => 
-        file.basename.toLowerCase().includes(query.toLowerCase()) ||
-        file.path.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      // 限制结果数量，避免过多
-      setSearchResults(filtered.slice(0, 20));
-    } catch (error) {
-      console.error('搜索文件时出错:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-  
-  // 选择文件 - 使用Obsidian Vault API读取文件内容
-  const selectFile = async (file: TFile) => {
-    try {
-      const content = await app.vault.read(file);
-      setText(content);
-      setShowDropdown(false);
-      setSearchQuery('');
-    } catch (error) {
-      console.error('读取文件内容时出错:', error);
+      try {
+        // 检查app是否存在
+        if (!app) {
+          console.error("无法渲染Markdown：app实例未提供");
+          previewRef.current.textContent = "预览无法加载 - app实例未提供";
+          return;
+        }
+        
+        // 获取预览容器的DOM元素
+        const previewEl = previewRef.current;
+        
+        // 创建一个元素的唯一ID，用于处理内部链接等
+        const elementId = `markdown-preview-${Date.now()}`;
+        previewEl.id = elementId;
+        
+        // 设置预览容器的基本样式类
+        previewEl.classList.add("markdown-rendered");
+        previewEl.classList.add("markdown-preview-view");
+        
+        // 使用MarkdownRenderer渲染Markdown内容
+        // 第三个参数是源文件路径，对于临时内容可以为空
+        // 第四个参数可以传递一个组件上下文来支持内部链接和其他功能
+        await MarkdownRenderer.renderMarkdown(
+          text,
+          previewEl,
+          '',
+          {
+            // 提供一个sourcePath可以帮助解析相对链接
+            sourcePath: '',
+            // 添加一个containerEl帮助处理嵌入式内容
+            containerEl: previewEl,
+            // 用于正确渲染其他类型的内容
+            app: app
+          }
+        );
+        
+        // 处理Mermaid图表和代码块
+        // 渲染后查找所有未渲染的代码块
+        const unprocessedCodeBlocks = previewEl.querySelectorAll("pre > code");
+        for (let codeBlock of Array.from(unprocessedCodeBlocks)) {
+          const pre = codeBlock.parentElement;
+          if (!pre) continue;
+          
+          // 检查是否为Mermaid图表
+          if (codeBlock.classList.contains("language-mermaid")) {
+            try {
+              // 触发Mermaid渲染 - Obsidian应该能自动处理这个
+              // 但如果没有自动处理，可能需要添加额外处理逻辑
+              const mermaidDiv = document.createElement("div");
+              mermaidDiv.addClass("mermaid");
+              mermaidDiv.setText(codeBlock.textContent || "");
+              pre.replaceWith(mermaidDiv);
+            } catch (err) {
+              console.error("无法渲染Mermaid图表:", err);
+            }
+          } else {
+            // 对其他代码块应用语法高亮
+            codeBlock.classList.add("is-loaded");
+          }
+        }
+        
+        // 添加点击事件处理内部链接
+        const links = previewEl.querySelectorAll("a.internal-link");
+        for (let link of Array.from(links)) {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+            if (href) {
+              // 这里可以添加处理内部链接的逻辑
+              console.log("内部链接被点击:", href);
+              // 可以调用app.workspace.openLinkText来打开链接
+            }
+          });
+        }
+        
+      } catch (error) {
+        console.error("渲染Markdown时出错:", error);
+        previewRef.current.textContent = "预览渲染失败: " + error.message;
+      }
     }
   };
   
@@ -144,19 +171,6 @@ export const EditorComponent: React.FC<EditorComponentProps> = ({
             margin: "0 10px" 
           }}
         >
-          <input
-            type="text"
-            placeholder="搜索仓库内的Markdown文件..."
-            value={searchQuery}
-            onChange={handleSearch}
-            style={{
-              width: "100%",
-              padding: "4px 8px",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "4px",
-              backgroundColor: "var(--background-primary-alt)"
-            }}
-          />
           
           {/* 搜索结果下拉菜单 */}
           {showDropdown && (
