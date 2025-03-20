@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { App } from 'obsidian';
 import ReactIris from '../main';
+import { debounce } from 'obsidian';
 
 interface SettingComponentProps {
   app: App;
   plugin?: ReactIris; // 插件实例
+  autoSave?: boolean; // 是否自动保存
 }
 
 // 插件设置接口
@@ -16,7 +18,11 @@ interface PluginSettings {
   autoSave?: boolean;
 }
 
-export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin }) => {
+export const SettingComponent: React.FC<SettingComponentProps> = ({ 
+  app, 
+  plugin,
+  autoSave = false // 默认不自动保存
+}) => {
   // 初始化设置状态
   const [settings, setSettings] = useState<PluginSettings>({
     mySetting: 'default',
@@ -27,6 +33,62 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin 
   
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
+
+  // 定义保存设置的函数
+  const saveSettingsToPlugin = async (settingsToSave: PluginSettings) => {
+    try {
+      // 方法1：如果有插件实例，使用它的保存方法
+      if (plugin) {
+        // 更新插件设置
+        plugin.settings = {...settingsToSave};
+        // 保存设置
+        await plugin.saveSettings();
+        console.log("设置已自动保存到插件");
+      } 
+      // 方法2：直接写入 data.json (备用方法)
+      else {
+        const configDir = app.vault.configDir;
+        const pluginDataPath = `${configDir}/plugins/obsidian-react-iris/data.json`;
+        
+        // 将设置转换为JSON字符串
+        const data = JSON.stringify(settingsToSave, null, 2);
+        
+        // 写入文件
+        await app.vault.adapter.write(pluginDataPath, data);
+        console.log("设置已自动保存到data.json");
+      }
+      
+      // 自动保存成功提示（可选）
+      if (!autoSave) {
+        setMessage({
+          text: "设置已保存",
+          type: 'success'
+        });
+        
+        // 3秒后清除消息
+        setTimeout(() => {
+          setMessage(null);
+        }, 3000);
+      }
+      
+    } catch (error) {
+      console.error("保存设置失败:", error);
+      setMessage({
+        text: `保存设置失败: ${error.message}`,
+        type: 'error'
+      });
+    }
+  };
+  
+  // 创建一个防抖的保存函数，避免频繁保存
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSave = useCallback(
+    debounce(
+      (settingsToSave: PluginSettings) => saveSettingsToPlugin(settingsToSave),
+      500 // 500ms的防抖时间
+    ),
+    [plugin, app]
+  );
 
   // 加载设置
   useEffect(() => {
@@ -75,55 +137,24 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin 
     loadSettings();
   }, [app, plugin]);
 
-  // 保存设置
-  const saveSettings = async () => {
-    try {
-      // 方法1：如果有插件实例，使用它的保存方法
-      if (plugin) {
-        // 更新插件设置
-        plugin.settings = {...settings};
-        // 保存设置
-        await plugin.saveSettings();
-        console.log("设置已通过插件实例保存");
-      } 
-      // 方法2：直接写入 data.json (备用方法)
-      else {
-        const configDir = app.vault.configDir;
-        const pluginDataPath = `${configDir}/plugins/obsidian-react-iris/data.json`;
-        
-        // 将设置转换为JSON字符串
-        const data = JSON.stringify(settings, null, 2);
-        
-        // 写入文件
-        await app.vault.adapter.write(pluginDataPath, data);
-        console.log("设置已直接写入data.json");
-      }
-      
-      setMessage({
-        text: "设置已保存",
-        type: 'success'
-      });
-      
-      // 3秒后清除消息
-      setTimeout(() => {
-        setMessage(null);
-      }, 3000);
-      
-    } catch (error) {
-      console.error("保存设置失败:", error);
-      setMessage({
-        text: `保存设置失败: ${error.message}`,
-        type: 'error'
-      });
-    }
+  // 手动保存设置（按钮点击时使用）
+  const handleManualSave = async () => {
+    await saveSettingsToPlugin(settings);
   };
 
   // 处理设置变更
   const handleSettingChange = (key: keyof PluginSettings, value: any) => {
-    setSettings(prev => ({
-      ...prev,
+    const newSettings = {
+      ...settings,
       [key]: value
-    }));
+    };
+    
+    setSettings(newSettings);
+    
+    // 如果启用了自动保存，则触发防抖保存
+    if (autoSave) {
+      debouncedSave(newSettings);
+    }
   };
 
   if (isLoading) {
@@ -151,6 +182,19 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin 
           color: message.type === 'error' ? 'var(--text-error)' : 'var(--text-normal)'
         }}>
           {message.text}
+        </div>
+      )}
+      
+      {autoSave && (
+        <div style={{
+          padding: '8px',
+          marginBottom: '15px',
+          backgroundColor: 'var(--background-primary-alt)',
+          borderRadius: '4px',
+          fontSize: '0.9em',
+          color: 'var(--text-muted)'
+        }}>
+          设置会在修改后自动保存
         </div>
       )}
       
@@ -241,9 +285,9 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin 
         </div>
       </div>
       
-      {/* 保存按钮 */}
+      {/* 保存按钮 - 即使自动保存启用也显示，作为备用选项 */}
       <button 
-        onClick={saveSettings}
+        onClick={handleManualSave}
         style={{
           padding: '8px 16px',
           backgroundColor: 'var(--interactive-accent)',
@@ -254,7 +298,7 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({ app, plugin 
           fontWeight: 'bold'
         }}
       >
-        保存设置
+        {autoSave ? '手动保存' : '保存设置'}
       </button>
     </div>
   );
