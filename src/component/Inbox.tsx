@@ -13,6 +13,21 @@ interface InboxProps {
 
 export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, plugin }) => {
   const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
+  // 添加折叠状态跟踪
+  const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set());
+  
+  // 折叠/展开消息
+  const toggleMessageCollapse = (id: string) => {
+    setCollapsedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
   
   // 切换消息选择状态
   const toggleMessageSelection = (id: string) => {
@@ -21,6 +36,17 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
         ? prev.filter(messageId => messageId !== id) 
         : [...prev, id]
     );
+  };
+  
+  // 截断长文本
+  const truncateText = (text: string, maxLength: number = 50) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+  
+  // 检查消息内容是否足够长，值得折叠
+  const isMessageLongEnough = (content: string) => {
+    return content.length > 50 || content.split('\n').length > 5;
   };
   
   // 导出选中的消息
@@ -150,68 +176,118 @@ export const InboxComponent: React.FC<InboxProps> = ({ messages, onRemove, app, 
             在聊天中点击"添加到收藏"来收藏消息。
           </div>
         ) : (
-          messages.map(message => (
-            <div 
-              key={message.id}
-              className="inbox-message-card"
-              style={{
-                padding: '12px',
-                backgroundColor: selectedMessages.includes(message.id) 
-                  ? 'var(--background-modifier-hover)'
-                  : 'var(--background-secondary)',
-                borderRadius: '8px',
-                marginBottom: '12px',
-                border: `1px solid ${selectedMessages.includes(message.id) 
-                  ? 'var(--interactive-accent)'
-                  : 'var(--background-modifier-border)'}`,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => toggleMessageSelection(message.id)}
-            >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '8px'
-              }}>
+          messages.map(message => {
+            const isCollapsed = collapsedMessages.has(message.id);
+            const shouldOfferCollapse = isMessageLongEnough(message.content);
+            
+            return (
+              <div 
+                key={message.id}
+                className="inbox-message-card"
+                style={{
+                  padding: '12px',
+                  backgroundColor: selectedMessages.includes(message.id) 
+                    ? 'var(--background-modifier-hover)'
+                    : 'var(--background-secondary)',
+                  borderRadius: '8px',
+                  marginBottom: '12px',
+                  border: `1px solid ${selectedMessages.includes(message.id) 
+                    ? 'var(--interactive-accent)'
+                    : 'var(--background-modifier-border)'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
                 <div style={{
-                  whiteSpace: 'pre-wrap',
-                  fontSize: '14px',
-                  color: 'var(--text-normal)',
-                  flex: 1
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '8px'
                 }}>
-                  {message.content}
+                  <div 
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      fontSize: '14px',
+                      color: 'var(--text-normal)',
+                      flex: 1
+                    }}
+                    onClick={() => toggleMessageSelection(message.id)}
+                  >
+                    {/* 根据折叠状态显示完整或截断的内容 */}
+                    {isCollapsed && shouldOfferCollapse ? truncateText(message.content) : message.content}
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start'
+                  }}>
+                    {/* 添加折叠/展开按钮，仅当消息足够长时显示 */}
+                    {shouldOfferCollapse && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMessageCollapse(message.id);
+                        }}
+                        aria-label={isCollapsed ? "展开" : "折叠"}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          marginRight: '4px',
+                          fontSize: '12px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        {isCollapsed ? '展开 ▼' : '折叠 ▲'}
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(message.id);
+                      }}
+                      aria-label="删除收藏"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        marginLeft: '4px',
+                        marginRight: '-8px',
+                        fontSize: '14px',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove(message.id);
-                  }}
-                  aria-label="删除收藏"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    marginLeft: '4px',
-					marginRight: '-8px',
-                    fontSize: '14px',
-                    borderRadius: '4px'
-                  }}
-                >
-                  ✕
-                </button>
+                <div style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span>{new Date(message.timestamp).toLocaleString()}</span>
+                  
+                  {/* 显示Token计数和响应时间信息（如果有） */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {message.tokencount && (
+                      <span>{message.tokencount} tokens</span>
+                    )}
+                    {message.responsetime && (
+                      <span>响应: {message.responsetime < 1000 ? 
+                        `${message.responsetime}ms` : 
+                        `${(message.responsetime/1000).toFixed(2)}s`}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div style={{
-                fontSize: '12px',
-                color: 'var(--text-muted)'
-              }}>
-                {new Date(message.timestamp).toLocaleString()}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
