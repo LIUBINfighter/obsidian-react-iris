@@ -307,8 +307,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     </div>
   );
 
-  // 右侧操作按钮
-  const rightActions = (
+  // 右侧操作按钮 - 添加显示条件
+  const rightActions = !sidebarVisible ? (
     <button
       onClick={toggleSidebar}
       style={createIconButtonStyle(sidebarVisible)}
@@ -319,7 +319,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         style={{ width: '16px', height: '16px' }}
       />
     </button>
-  );
+  ) : null;
 
   return (
     <Header

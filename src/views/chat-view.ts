@@ -169,6 +169,8 @@ export class ChatView extends ItemView {
                         key: 'chat-sidebar',
                         app: this.app,
                         visible: this.sidebarVisible,
+                        toggleSidebar: this.toggleSidebar,     // 添加这行
+                        sidebarVisible: this.sidebarVisible,   // 添加这行
                         ref: this.sidebarRef,
                         plugin: this.plugin
                     })
