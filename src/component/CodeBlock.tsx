@@ -60,7 +60,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
       <div 
         className="code-block-header" 
         style={{
-        //   padding: '8px 12px', 不添加padding使得样式更紧凑
+          padding: '4px 16px', // 低padding使得样式更紧凑
           backgroundColor: 'var(--background-modifier-hover)',
           display: 'flex',
           justifyContent: 'space-between',

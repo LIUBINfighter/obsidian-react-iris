@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { App, MarkdownRenderer } from 'obsidian';
+import { App, MarkdownRenderer, setIcon } from 'obsidian';
 import { MessageSegment } from '../utils/messageProcessorUtils';
 
 interface TextBlockProps {
@@ -127,14 +127,17 @@ export const TextBlock: React.FC<TextBlockProps> = ({ segment, onAddToInbox, app
               color: 'var(--text-accent)',
               cursor: 'pointer',
               fontSize: '14px',
-              padding: '2px 6px',
               borderRadius: '4px',
-              opacity: 1 // 确保按钮本身是不透明的
+              opacity: 1, // 确保按钮本身是不透明的
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px'
             }}
             aria-label="添加到收藏"
             title="收藏这个段落"
           >
-            <span>★</span>
+            <div ref={el => el && setIcon(el, 'star')} />
           </button>
         </div>
       )}
