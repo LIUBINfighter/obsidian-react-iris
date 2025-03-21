@@ -76,7 +76,7 @@ export function LMStudioSettings() {
   const fixedUserMessage = "请介绍一下你自己，并用3个要点概括LLM的特性。";
   const fixedSystemPrompt = "你是一个有用的AI助手，请用简明扼要的语言回答问题。";
 
-  // 发送聊天请求
+  // 修改发送聊天请求的方法
   const sendChatRequest = async () => {
     if (!selectedModel) {
       return;
@@ -85,23 +85,20 @@ export function LMStudioSettings() {
     setIsStreaming(true);
     setError(null);
     setChatResponse('');
-    const startTime = Date.now();
     
     try {
-      // 使用流式请求
       await lmStudioService.sendStreamingRequest(
         {
           messages: [{ id: '1', content: fixedUserMessage, timestamp: Date.now(), sender: 'user', favorite: false }],
           systemPrompt: fixedSystemPrompt,
           temperature: temperature,
-          maxTokens: -1 // 不限制生成长度
+          maxTokens: -1
         },
         (response) => {
           setChatResponse(response.content);
           if (response.isComplete) {
-            const endTime = Date.now();
-            setResponseTime(endTime - startTime);
-            setTokenCount(estimateTokenCount(response.content));
+            setResponseTime(response.responseTime || 0);
+            setTokenCount(response.tokenCount || 0);
             setIsStreaming(false);
           }
         }
@@ -174,92 +171,28 @@ export function LMStudioSettings() {
   
   // 发送图片识别请求
   const sendImageRequest = async () => {
-    if (!imageBase64 || !selectedModel) return;
+    if (!imageBase64) return;
     
     setIsImageProcessing(true);
     setError(null);
     setImageResponse('');
-    const startTime = Date.now();
     
     try {
-      // 创建包含图片的消息
-      const messages = [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: imagePrompt },
-            { type: "image_url", image_url: { url: imageBase64 } }
-          ]
-        }
-      ];
-      
-      // 构建请求体
-      const requestBody = {
-        model: defaultImageModel,  // 使用指定的图像模型
-        messages: messages,
-        temperature: temperature,
-        max_tokens: -1,
-        stream: true
-      };
-      
-      // 发送请求
-      const response = await fetch(`${lmStudioService.baseUrl}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`图像识别请求失败: ${response.status} ${response.statusText}`);
-      }
-      
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('无法获取响应流');
-      }
-      
-      const decoder = new TextDecoder();
-      let content = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          setImageResponse(content);
-          setResponseTime(Date.now() - startTime);
-          setTokenCount(estimateTokenCount(content));
-          setIsImageProcessing(false);
-          break;
-        }
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim());
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6); // 去掉 "data: " 前缀
-            
-            if (dataStr === "[DONE]") {
-              continue;
-            }
-            
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
-                content += data.choices[0].delta.content;
-                setImageResponse(content);
-              }
-            } catch (e) {
-              console.warn('无法解析JSON响应:', line);
-            }
+      await lmStudioService.sendImageRequest(
+        imageBase64,
+        imagePrompt,
+        temperature,
+        (response) => {
+          setImageResponse(response.content);
+          if (response.isComplete) {
+            setResponseTime(response.responseTime || 0);
+            setTokenCount(response.tokenCount || 0);
+            setIsImageProcessing(false);
           }
         }
-      }
+      );
     } catch (err) {
       setError('图像识别请求失败: ' + (err instanceof Error ? err.message : String(err)));
-    } finally {
       setIsImageProcessing(false);
     }
   };
