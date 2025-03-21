@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { App } from 'obsidian';
-import { InboxComponent } from './Inbox';
+import { InboxComponent } from './sidebar/Inbox';
 import { Message } from './Chat';
 import ReactIris from '../main';
 import { 

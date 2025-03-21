@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { App, setIcon } from 'obsidian';
 import ReactIris from '../main';
-import { ChatSessionList } from './ChatSessionList';
+import { ChatSessionList } from './sidebar/ChatSessionList';
 import { Header, createIconButtonStyle } from './common/Header';
 
 interface LeftSidebarProps {

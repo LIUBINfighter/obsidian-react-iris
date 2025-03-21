@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { App } from 'obsidian';
-import { Message } from './Chat';
-import { formatResponseTime } from '../utils/tokenUtils';
+import { Message } from '../Chat';
+import { formatResponseTime } from '../../utils/tokenUtils';
 import { 
   MessageSegment, 
   MessageSegmentType, 
   parseMessageContent, 
   segmentToFavoriteMessage 
-} from '../utils/messageProcessorUtils';
+} from '../../utils/messageProcessorUtils';
 import { TextBlock } from './TextBlock';
 import { CodeBlock } from './CodeBlock';
 import { MermaidBlock } from './MermaidBlock';

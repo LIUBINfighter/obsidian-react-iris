@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { App, MarkdownRenderer, Notice } from 'obsidian';
-import { MessageSegment } from '../utils/messageProcessorUtils';
+import { MessageSegment } from '../../utils/messageProcessorUtils';
 
 interface CodeBlockProps {
   segment: MessageSegment;
@@ -23,7 +23,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
         codeBlockContent,
         container,
         '',
-        null
+        // null
       );
       
       // 为渲染后的pre添加样式

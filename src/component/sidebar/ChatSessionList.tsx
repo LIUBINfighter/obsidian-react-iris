@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { App, Notice } from 'obsidian';
-import { ChatSession } from './Chat';
-import { getAllChatSessionIds, loadChatSessionFromFile, saveChatSessionToFile, deleteChatSession } from '../utils/chatUtils';
+import { ChatSession } from '../Chat';
+import { getAllChatSessionIds, loadChatSessionFromFile, saveChatSessionToFile, deleteChatSession } from '../../utils/chatUtils';
 
 interface ChatSessionListProps {
   app: App;

@@ -3,7 +3,7 @@ import { App, Notice } from 'obsidian';
 import ReactIris from '../main';
 import { saveChatSessionToFile, loadChatSessionFromFile } from '../utils/chatUtils';
 import { AIServiceType } from '../services/AIServiceFactory';
-import { MessageBubble } from './MessageBubble';
+import { MessageBubble } from './chat-block/MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHeader } from './ChatHeader';
 import { AIClient } from '../services/AIClient';

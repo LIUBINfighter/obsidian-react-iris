@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { App, Notice } from 'obsidian';
-import ReactIris from '../main';
-import { exportMessagesToMarkdown, generateSingleMessageMarkdown } from '../utils/exportUtils';
-import { FavoriteItem } from '../utils/favoriteUtils';
-import { Header } from './common/Header';
-import { ExportModal, ExportOptions } from './modal/ExportModal';
+import ReactIris from '../../main';
+import { exportMessagesToMarkdown, generateSingleMessageMarkdown } from '../../utils/exportUtils';
+import { FavoriteItem } from '../../utils/favoriteUtils';
+import { Header } from '../common/Header';
+import { ExportModal, ExportOptions } from '../modal/ExportModal';
 
 interface InboxProps {
   messages: FavoriteItem[];
