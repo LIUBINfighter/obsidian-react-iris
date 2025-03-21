@@ -1,0 +1,11 @@
+{
+	"id": "react-iris",
+	"name": "React Iris",
+	"version": "0.0.1",
+	"minAppVersion": "0.15.0",
+	"description": "",
+	"author": "Jay Bridge",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}

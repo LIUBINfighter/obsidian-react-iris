@@ -6,26 +6,22 @@ import { AIServiceType } from './services/AIServiceFactory';
 
 interface ReactIrisSettings {
 	mySetting: string;
-	aiService: {
-		type: AIServiceType;
-		baseUrl: string;
-		modelName: string;
-		systemPrompt: string;
-		temperature: number;
-		maxTokens: number;
-	};
+	apiKey: string;
+	baseUrl: string;
+	modelName: string;
+	temperature: number;
+	serviceType: AIServiceType;
+	defaultExportFolder: string; // 添加默认导出文件夹设置
 }
 
 const DEFAULT_SETTINGS: ReactIrisSettings = {
 	mySetting: 'default',
-	aiService: {
-		type: 'langchain',
-		baseUrl: 'http://localhost:11434',
-		modelName: 'deepseek-r1:latest',
-		systemPrompt: '你是一个有用的AI助手。',
-		temperature: 0.7,
-		maxTokens: 4096
-	}
+	apiKey: '',
+	baseUrl: 'http://localhost:11434',
+	modelName: 'gemma:2b',
+	temperature: 0.7,
+	serviceType: 'langchain',
+	defaultExportFolder: '/inbox' // 默认导出到 inbox 文件夹
 }
 
 export default class ReactIris extends Plugin {
@@ -64,9 +60,9 @@ export default class ReactIris extends Plugin {
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+		// this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
+		// 	console.log('click', evt);
+		// });
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));

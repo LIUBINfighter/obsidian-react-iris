@@ -1,14 +1,49 @@
-import React from 'react';
-import { App } from 'obsidian';
+import React, { useRef, useEffect } from 'react';
+import { App, setIcon } from 'obsidian';
 import ReactIris from '../main';
+import { ChatSessionList } from './sidebar/ChatSessionList';
+import { Header, createIconButtonStyle } from './common/Header';
 
 interface LeftSidebarProps {
   app: App;
   visible: boolean;
   plugin?: ReactIris;
+  currentSessionId: string;
+  onSelectSession: (sessionId: string) => void;
+  onCreateNewSession: () => void;
 }
 
-export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ app, visible, plugin }) => {
+export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ 
+  app, 
+  visible, 
+  plugin,
+  currentSessionId,
+  onSelectSession,
+  onCreateNewSession
+}) => {
+  const addIconRef = useRef<HTMLDivElement>(null);
+  
+  // 使用 useEffect 设置图标
+  useEffect(() => {
+    if (addIconRef.current) {
+      setIcon(addIconRef.current, 'plus');
+    }
+  }, []);
+
+  // 添加新会话按钮
+  const rightActions = (
+    <button
+      onClick={onCreateNewSession}
+      style={createIconButtonStyle()}
+      title="创建新会话"
+    >
+      <div 
+        ref={addIconRef}
+        style={{ width: '16px', height: '16px' }}
+      />
+    </button>
+  );
+
   if (!visible) return null;
   
   return (
@@ -21,28 +56,24 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ app, visible,
       flexDirection: 'column',
       transition: 'width 0.3s ease'
     }}>
-      <div className="left-sidebar-header" style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--background-modifier-border)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h4 style={{ margin: 0 }}>左侧边栏</h4>
-      </div>
+      <Header
+        title="聊天会话"
+        rightActions={rightActions}
+        className="left-sidebar-header"
+      />
       
       <div className="left-sidebar-content" style={{
         flex: 1,
         overflowY: 'auto',
         padding: '16px'
       }}>
-        <div style={{
-          padding: '20px',
-          textAlign: 'center',
-          color: 'var(--text-muted)'
-        }}>
-          左侧边栏内容区域
-        </div>
+        {/* 会话列表组件 */}
+        <ChatSessionList 
+          app={app}
+          currentSessionId={currentSessionId}
+          onSelectSession={onSelectSession}
+          onCreateNewSession={onCreateNewSession}
+        />
       </div>
     </div>
   );
