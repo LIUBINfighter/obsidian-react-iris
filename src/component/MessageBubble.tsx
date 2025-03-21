@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { App } from 'obsidian';
 import { Message } from './Chat';
 import { formatResponseTime } from '../utils/tokenUtils';
+import { 
+  MessageSegment, 
+  MessageSegmentType, 
+  parseMessageContent, 
+  segmentToFavoriteMessage 
+} from '../utils/messageProcessorUtils';
+import { TextBlock } from './TextBlock';
+import { CodeBlock } from './CodeBlock';
+import { MermaidBlock } from './MermaidBlock';
+import { ThinkingBlock } from './ThinkingBlock';
 
 interface MessageBubbleProps {
   message: Message & {
@@ -9,13 +20,25 @@ interface MessageBubbleProps {
     favorite?: boolean;
   };
   onAddToInbox: (message: Message) => void;
+  app: App;
 }
 
 /**
  * 消息气泡组件 - 显示单条聊天消息
  */
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToInbox }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToInbox, app }) => {
   const isUser = message.sender === 'user';
+  
+  // 使用useMemo解析消息内容，避免不必要的重新计算
+  const messageSegments = useMemo(() => {
+    return parseMessageContent(message);
+  }, [message]);
+  
+  // 处理段落收藏
+  const handleSegmentAddToInbox = (segment: MessageSegment) => {
+    const favoriteMessage = segmentToFavoriteMessage(segment);
+    onAddToInbox(favoriteMessage);
+  };
   
   return (
     <div 
@@ -31,23 +54,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
         display: 'flex', 
         flexDirection: isUser ? 'row-reverse' : 'row',
         alignItems: 'flex-start',
-        maxWidth: '100%'
+        maxWidth: '100%',
+        width: '100%'
       }}>
-        <div style={{
-          backgroundColor: isUser ? 'var(--interactive-accent)' : 'var(--background-secondary)',
-          color: isUser ? 'var(--text-on-accent)' : 'var(--text-normal)',
-          padding: '12px 16px',
-          borderRadius: '18px',
-          borderBottomLeftRadius: isUser ? '18px' : '4px',
-          borderBottomRightRadius: isUser ? '4px' : '18px',
-          marginLeft: isUser ? '0' : '8px',
-          marginRight: isUser ? '8px' : '0',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-          overflowWrap: 'break-word',
-          whiteSpace: 'pre-wrap'
-        }}>
-          {message.content}
-        </div>
         <div style={{
           width: '32px',
           height: '32px',
@@ -58,9 +67,81 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
           justifyContent: 'center',
           color: 'white',
           fontSize: '14px',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          marginRight: isUser ? '0' : '8px',
+          marginLeft: isUser ? '8px' : '0',
+          flexShrink: 0
         }}>
           {isUser ? '你' : 'AI'}
+        </div>
+        
+        <div style={{
+          flex: 1,
+          maxWidth: 'calc(100% - 50px)'
+        }}>
+          {isUser ? (
+            // 用户消息简单显示
+            <div style={{
+              backgroundColor: 'var(--interactive-accent)',
+              color: 'var(--text-on-accent)',
+              padding: '12px 16px',
+              borderRadius: '18px',
+              borderBottomRightRadius: '4px',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+              marginLeft: 'auto', // 靠右对齐
+              display: 'inline-block'
+            }}>
+              {message.content}
+            </div>
+          ) : (
+            // AI消息分段显示
+            <div className="message-segments" style={{ width: '100%' }}>
+              {messageSegments.map((segment) => {
+                switch (segment.type) {
+                  case MessageSegmentType.THINKING:
+                    return (
+                      <ThinkingBlock 
+                        key={segment.id}
+                        segment={segment}
+                        onAddToInbox={handleSegmentAddToInbox}
+                      />
+                    );
+                  
+                  case MessageSegmentType.CODE:
+                    return (
+                      <CodeBlock 
+                        key={segment.id}
+                        segment={segment}
+                        app={app}
+                        onAddToInbox={handleSegmentAddToInbox}
+                      />
+                    );
+                  
+                  case MessageSegmentType.MERMAID:
+                    return (
+                      <MermaidBlock 
+                        key={segment.id}
+                        segment={segment}
+                        app={app}
+                        onAddToInbox={handleSegmentAddToInbox}
+                      />
+                    );
+                  
+                  case MessageSegmentType.TEXT:
+                  default:
+                    return (
+                      <TextBlock 
+                        key={segment.id}
+                        segment={segment}
+                        onAddToInbox={handleSegmentAddToInbox}
+                      />
+                    );
+                }
+              })}
+            </div>
+          )}
         </div>
       </div>
       
@@ -70,7 +151,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
         alignItems: isUser ? 'flex-end' : 'flex-start',
         marginTop: '4px',
         fontSize: '12px',
-        color: 'var(--text-muted)'
+        color: 'var(--text-muted)',
+        paddingLeft: isUser ? '0' : '40px',
+        paddingRight: isUser ? '40px' : '0'
       }}>
         <div style={{
           display: 'flex',
@@ -98,49 +181,49 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
           )}
         </div>
         
-		{!isUser && (
-		  <div style={{ marginTop: '4px' }}>
-			{!message.favorite ? (
-			  <button 
-			onClick={() => onAddToInbox(message)}
-			style={{
-			  background: 'none',
-			  border: 'none',
-			  color: 'var(--text-accent)',
-			  cursor: 'pointer',
-			  padding: '2px 6px',
-			  borderRadius: '4px',
-			  fontSize: '12px',
-			  display: 'flex',
-			  alignItems: 'center',
-			  gap: '4px'
-				}}
-				aria-label="添加到收藏"
-			  >
-			<span style={{ fontSize: '14px' }}>★</span> 添加到收藏
-			  </button>
-			) : (
-			  <button
-			onClick={() => onAddToInbox(message)}
-			style={{
-			  background: 'none',
-			  border: 'none',
-			  color: 'var(--text-accent)',
-			  cursor: 'pointer',
-			  padding: '2px 6px',
-			  borderRadius: '4px',
-			  fontSize: '12px',
-			  display: 'flex',
-			  alignItems: 'center',
-			  gap: '4px'
-				}}
-				aria-label="取消收藏"
-			  >
-			<span style={{ fontSize: '14px' }}>★</span> 取消收藏
-			  </button>
-			)}
-		  </div>
-		)}
+        {!isUser && (
+          <div style={{ marginTop: '4px' }}>
+            {!message.favorite ? (
+              <button 
+                onClick={() => onAddToInbox(message)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-accent)',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                aria-label="添加到收藏"
+              >
+                <span style={{ fontSize: '14px' }}>★</span> 收藏完整回复
+              </button>
+            ) : (
+              <button
+                onClick={() => onAddToInbox(message)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-accent)',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                aria-label="取消收藏"
+              >
+                <span style={{ fontSize: '14px' }}>★</span> 取消收藏
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,36 +1,44 @@
 /**
- * 估算文本的token数量
- * 这是一个简化的估算方法，真实的token数取决于具体的分词器
- * @param text 要计算的文本
- * @returns 估算的token数量
+ * 格式化响应时间
+ * @param ms 毫秒数
+ * @returns 格式化后的字符串
  */
-export function estimateTokenCount(text: string): number {
-  if (!text || text.trim() === '') {
-    return 0;
+export function formatResponseTime(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  } else {
+    return `${(ms / 1000).toFixed(2)}s`;
   }
-  
-  // 英文单词和标点符号处理（大约4个字符为1个token）
-  const englishCharCount = (text.match(/[a-zA-Z0-9.,?!;:()\[\]{}'"<>\/\\@#$%^&*_+=|~`-]/g) || []).length;
-  
-  // 中文字符处理（每个汉字大约是1个token）
-  const chineseCharCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-  
-  // 其他字符（如空格、换行、表情符等）
-  const otherCharCount = text.length - englishCharCount - chineseCharCount;
-  
-  // 计算总token数
-  return Math.ceil(englishCharCount / 4) + chineseCharCount + Math.ceil(otherCharCount / 2);
 }
 
 /**
- * 格式化响应时间显示
- * @param milliseconds 毫秒时间
- * @returns 格式化的时间字符串
+ * 估算文本的token数量
+ * @param text 文本内容
+ * @returns 估算的token数量
  */
-export function formatResponseTime(milliseconds: number): string {
-  if (milliseconds < 1000) {
-    return `${milliseconds}ms`;
-  } else {
-    return `${(milliseconds / 1000).toFixed(2)}s`;
-  }
+export function estimateTokenCount(text: string): number {
+  // 这是一个简单的估算，实际token计数取决于模型和分词器
+  // GPT模型平均每4个字符约为1个token
+  const chars = text.trim().length;
+  const estimatedTokens = Math.ceil(chars / 4);
+  return estimatedTokens;
+}
+
+/**
+ * 判断代码块语言是否为Mermaid
+ * @param language 语言字符串
+ * @returns 是否为Mermaid
+ */
+export function isMermaidLanguage(language: string): boolean {
+  return language.toLowerCase() === 'mermaid';
+}
+
+/**
+ * 从代码块中提取语言
+ * @param codeBlock 代码块文本 
+ * @returns 语言标识符
+ */
+export function extractLanguageFromCodeBlock(codeBlock: string): string {
+  const match = codeBlock.match(/^```([a-zA-Z0-9_+-]*)/);
+  return match ? match[1].trim() : '';
 }

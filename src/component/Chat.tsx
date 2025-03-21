@@ -339,6 +339,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
 		key={message.id}
 		message={message}
 		onAddToInbox={handleAddToInbox}
+		app={app}
 		/>
 	  ))}
 	  <div ref={messagesEndRef} />
