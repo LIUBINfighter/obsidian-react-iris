@@ -72,7 +72,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
           marginLeft: isUser ? '8px' : '0',
           flexShrink: 0
         }}>
-          {isUser ? '你' : 'AI'}
+          {isUser ? '你' : 'Iris'}
         </div>
         
         <div style={{

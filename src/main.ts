@@ -3,6 +3,7 @@ import { ReadMeView } from './views/readme';
 import { ReactIrisSettingTab } from './SettingTab';
 import { ReactIrisModal } from './modal';
 import { AIServiceType } from './services/AIServiceFactory';
+import { ChatView, CHAT_VIEW_TYPE } from './views/chat-view';
 
 interface ReactIrisSettings {
 	mySetting: string;
@@ -29,10 +30,16 @@ export default class ReactIris extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		// 只注册合并后的ReadMe视图
+		// 注册视图
 		this.registerView(
 			"ReadMe-view",
 			(leaf) => new ReadMeView(leaf, this)
+		);
+
+		// 注册聊天视图
+		this.registerView(
+			CHAT_VIEW_TYPE,
+			(leaf) => new ChatView(leaf, this)
 		);
 
 		// 添加命令打开合并后的ReadMe视图
@@ -41,8 +48,17 @@ export default class ReactIris extends Plugin {
 			name: "Show ReadMe and React View",
 			callback: () => {
 				this.activateReadMeView();
-				}
-			});
+			}
+		});
+
+		// 添加命令打开聊天视图
+		this.addCommand({
+			id: "show-chat-view",
+			name: "打开聊天助手",
+			callback: () => {
+				this.activateChatView();
+			}
+		});
 
 		// 添加一个info图标到功能区，点击时打开ReadMe视图
 		const ribbonIconEl = this.addRibbonIcon('info', 'React Iris Info', (evt: MouseEvent) => {
@@ -50,6 +66,13 @@ export default class ReactIris extends Plugin {
 			this.activateReadMeView();
 		});
 		ribbonIconEl.addClass('react-iris-ribbon-icon');
+
+		// 添加一个新芽图标到功能区，点击时打开聊天视图
+		const chatRibbonIconEl = this.addRibbonIcon('sprout', '聊天助手', (evt: MouseEvent) => {
+			// 打开聊天视图
+			this.activateChatView();
+		});
+		chatRibbonIconEl.addClass('react-iris-chat-ribbon-icon');
 
 		const statusBarItemEl = this.addStatusBarItem();
 		statusBarItemEl.setText('Status Bar Text');
@@ -69,8 +92,9 @@ export default class ReactIris extends Plugin {
 	}
 
 	onunload() {
-		// 只需清理合并后的视图
+		// 清理所有视图
 		this.app.workspace.detachLeavesOfType("ReadMe-view");
+		this.app.workspace.detachLeavesOfType(CHAT_VIEW_TYPE);
 	}
 
 	async loadSettings() {
@@ -106,6 +130,36 @@ export default class ReactIris extends Plugin {
 		setTimeout(() => {
 			if (leaf.view instanceof ReadMeView) {
 				console.log("刷新ReadMe视图");
+				leaf.view.onOpen();
+			}
+		}, 100);
+	}
+
+	// 激活聊天视图
+	async activateChatView() {
+		console.log("尝试激活聊天视图");
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
+		
+		if (!leaf) {
+			console.log("未找到聊天视图，创建新视图");
+			leaf = workspace.getLeaf(false);  // 将getRightLeaf改为getLeaf，使其在工作区而非侧边栏创建
+			await leaf.setViewState({
+				type: CHAT_VIEW_TYPE,
+				active: true,
+			});
+			console.log("聊天视图状态已设置");
+		} else {
+			console.log("找到现有聊天视图");
+		}
+		
+		workspace.revealLeaf(leaf);
+		console.log("聊天视图已显示");
+		
+		// 强制更新视图
+		setTimeout(() => {
+			if (leaf.view instanceof ChatView) {
+				console.log("刷新聊天视图");
 				leaf.view.onOpen();
 			}
 		}, 100);
