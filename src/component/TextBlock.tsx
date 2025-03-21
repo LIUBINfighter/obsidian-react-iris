@@ -14,7 +14,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({ segment, onAddToInbox }) =
     <div className="text-block" style={{
       position: 'relative',
       marginBottom: '12px',
-      backgroundColor: 'var(--background-secondary)',
+      backgroundColor: 'var(--background)',
       padding: '12px',
       borderRadius: '8px',
       color: 'var(--text-normal)',
@@ -31,7 +31,7 @@ export const TextBlock: React.FC<TextBlockProps> = ({ segment, onAddToInbox }) =
             right: '8px',
             opacity: 0,
             transition: 'opacity 0.2s ease',
-            backgroundColor: 'var(--background-secondary-alt)',
+            backgroundColor: 'var(--background)',
             borderRadius: '4px',
             padding: '2px'
           }}

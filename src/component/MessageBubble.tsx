@@ -80,20 +80,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
           maxWidth: 'calc(100% - 50px)'
         }}>
           {isUser ? (
-            // 用户消息简单显示
+            // 用户消息简单显示 - 修复右对齐问题
             <div style={{
-              backgroundColor: 'var(--interactive-accent)',
-              color: 'var(--text-on-accent)',
-              padding: '12px 16px',
-              borderRadius: '18px',
-              borderBottomRightRadius: '4px',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-              overflowWrap: 'break-word',
-              whiteSpace: 'pre-wrap',
-              marginLeft: 'auto', // 靠右对齐
-              display: 'inline-block'
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'flex-end' // 确保用户消息容器内容靠右对齐
             }}>
-              {message.content}
+              <div style={{
+                backgroundColor: 'var(--interactive-accent)',
+                color: 'var(--text-on-accent)',
+                padding: '12px 16px',
+                borderRadius: '18px',
+                borderBottomRightRadius: '4px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                overflowWrap: 'break-word',
+                whiteSpace: 'pre-wrap',
+                maxWidth: '85%', // 限制最大宽度，避免过长消息横跨整个屏幕
+                display: 'inline-block'
+              }}>
+                {message.content}
+              </div>
             </div>
           ) : (
             // AI消息分段显示

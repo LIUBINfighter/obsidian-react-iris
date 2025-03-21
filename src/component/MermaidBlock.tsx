@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { App, Notice } from 'obsidian';
+import { App, Notice, MarkdownRenderer } from 'obsidian';
 import { MessageSegment } from '../utils/messageProcessorUtils';
 
 interface MermaidBlockProps {
@@ -10,78 +10,55 @@ interface MermaidBlockProps {
 
 export const MermaidBlock: React.FC<MermaidBlockProps> = ({ segment, app, onAddToInbox }) => {
   const [viewMode, setViewMode] = useState<'graph' | 'code'>('graph');
-  const [svgContent, setSvgContent] = useState<string>('');
+  const [isCopied, setIsCopied] = useState(false);
   const [isRendering, setIsRendering] = useState(true);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // 渲染Mermaid图表
+  // 渲染Mermaid图表 - 使用Obsidian的MarkdownRenderer
   useEffect(() => {
-    const renderMermaid = async () => {
-      if (!containerRef.current) return;
+    if (!containerRef.current || viewMode !== 'graph') return;
+    
+    try {
+      setIsRendering(true);
+      setRenderError(null);
       
-      try {
-        setIsRendering(true);
-        setRenderError(null);
-        
-        // 尝试动态加载mermaid库
-        // 在实际生产环境中，你可能需要添加适当的错误处理和加载检测
-        const mermaid = (window as any).mermaid;
-        
-        if (!mermaid) {
-          // 如果mermaid不存在，则尝试加载它
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js';
-          script.onload = () => {
-            const mermaid = (window as any).mermaid;
-            mermaid.initialize({ startOnLoad: false, theme: 'default' });
-            renderDiagram();
-          };
-          script.onerror = () => {
-            setRenderError('无法加载Mermaid库');
-            setIsRendering(false);
-          };
-          document.head.appendChild(script);
-        } else {
-          // 如果mermaid已经加载，则直接渲染
-          renderDiagram();
-        }
-      } catch (error) {
-        console.error('渲染Mermaid图表失败:', error);
-        setRenderError(`渲染失败: ${error.message}`);
+      const container = containerRef.current;
+      container.empty(); // 清空容器
+      
+      // 创建完整的mermaid代码块
+      const mermaidMarkdown = `\`\`\`mermaid\n${segment.content}\n\`\`\``;
+      
+      // 使用Obsidian的MarkdownRenderer渲染mermaid图表
+      MarkdownRenderer.renderMarkdown(
+        mermaidMarkdown,
+        container,
+        '',
+        null
+      ).then(() => {
+        // 渲染完成
         setIsRendering(false);
-      }
-    };
-    
-    const renderDiagram = async () => {
-      try {
-        const mermaid = (window as any).mermaid;
-        mermaid.initialize({ startOnLoad: false, theme: 'default' });
-        
-        // 使用mermaid的API渲染图表
-        const { svg } = await mermaid.render('mermaid-diagram-' + segment.id, segment.content);
-        setSvgContent(svg);
+      }).catch(error => {
+        console.error('使用Obsidian渲染Mermaid失败:', error);
+        setRenderError(`渲染失败: ${error.message || '未知错误'}`);
         setIsRendering(false);
-      } catch (error) {
-        console.error('渲染Mermaid图表失败:', error);
-        setRenderError(`渲染失败: ${error.message}`);
-        setIsRendering(false);
-      }
-    };
-    
-    renderMermaid();
-  }, [segment]);
+      });
+    } catch (error) {
+      console.error('渲染Mermaid图表失败:', error);
+      setRenderError(`渲染失败: ${error.message || '未知错误'}`);
+      setIsRendering(false);
+    }
+  }, [segment, viewMode]);
   
-  // 复制SVG或代码到剪贴板
+  // 复制代码到剪贴板
   const handleCopy = () => {
-    const content = viewMode === 'graph' ? svgContent : segment.content;
+    const content = segment.content;
     
     navigator.clipboard.writeText(content)
       .then(() => {
         setIsCopied(true);
-        new Notice(`已复制${viewMode === 'graph' ? 'SVG' : '代码'}到剪贴板`);
+        new Notice(`已复制${viewMode === 'graph' ? 'Mermaid代码' : '代码'}到剪贴板`);
         setTimeout(() => setIsCopied(false), 2000);
       })
       .catch(err => {
@@ -90,61 +67,32 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ segment, app, onAddT
       });
   };
   
-  // 保存为PNG或SVG文件
-  const handleSave = async (format: 'png' | 'svg') => {
+  // 导出图片 (使用Obsidian API，简化版)
+  const handleExport = () => {
     try {
-      if (format === 'svg') {
-        // 保存为SVG文件
-        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-        saveAs(blob, `mermaid-diagram-${Date.now()}.svg`);
-      } else if (format === 'png' && containerRef.current) {
-        // 将SVG转换为PNG
-        const svgElement = containerRef.current.querySelector('svg');
-        if (!svgElement) {
-          new Notice('无法找到SVG元素');
-          return;
-        }
-        
-        // 创建Canvas
-        const canvas = document.createElement('canvas');
-        const rect = svgElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        const ctx = canvas.getContext('2d');
-        
-        // 创建Image对象
-        const image = new Image();
-        image.onload = () => {
-          // 绘制图像并保存
-          ctx.drawImage(image, 0, 0);
-          canvas.toBlob(blob => {
-            if (blob) {
-              saveAs(blob, `mermaid-diagram-${Date.now()}.png`);
-            } else {
-              new Notice('创建PNG文件失败');
-            }
-          });
-        };
-        
-        // 加载SVG数据
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-        image.src = URL.createObjectURL(svgBlob);
+      // 查找SVG元素
+      const svgElement = containerRef.current?.querySelector('svg');
+      if (!svgElement) {
+        new Notice('无法找到图表元素');
+        return;
       }
+      
+      // 获取SVG代码
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      
+      // 复制到剪贴板
+      navigator.clipboard.writeText(svgString)
+        .then(() => {
+          new Notice('图表SVG代码已复制到剪贴板');
+        })
+        .catch(err => {
+          console.error('复制SVG失败:', err);
+          new Notice('复制SVG失败');
+        });
     } catch (error) {
-      console.error('保存图表失败:', error);
-      new Notice('保存图表失败');
+      console.error('导出图表失败:', error);
+      new Notice('导出图表失败');
     }
-  };
-  
-  // 辅助函数：保存文件（在实际环境中，你可能会使用FileSaver.js等库）
-  const saveAs = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
   };
   
   return (
@@ -232,43 +180,26 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ segment, app, onAddT
               padding: '2px 6px',
               borderRadius: '4px'
             }}
-            aria-label={`复制${viewMode === 'graph' ? 'SVG' : '代码'}`}
+            aria-label="复制代码"
           >
             {isCopied ? '已复制' : '复制'}
           </button>
           {viewMode === 'graph' && !isRendering && !renderError && (
-            <>
-              <button
-                onClick={() => handleSave('svg')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-normal)',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  padding: '2px 6px',
-                  borderRadius: '4px'
-                }}
-                aria-label="保存为SVG"
-              >
-                保存SVG
-              </button>
-              <button
-                onClick={() => handleSave('png')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-normal)',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  padding: '2px 6px',
-                  borderRadius: '4px'
-                }}
-                aria-label="保存为PNG"
-              >
-                保存PNG
-              </button>
-            </>
+            <button
+              onClick={handleExport}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-normal)',
+                cursor: 'pointer',
+                fontSize: '13px',
+                padding: '2px 6px',
+                borderRadius: '4px'
+              }}
+              aria-label="导出图表"
+            >
+              导出SVG
+            </button>
           )}
         </div>
       </div>
@@ -286,31 +217,99 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ segment, app, onAddT
         }}
       >
         {viewMode === 'graph' ? (
-          isRendering ? (
-            <div style={{ color: 'var(--text-muted)' }}>
-              正在渲染图表...
-            </div>
-          ) : renderError ? (
-            <div style={{ color: 'var(--text-error)', padding: '10px' }}>
-              {renderError}
-              <pre style={{ 
-                marginTop: '10px', 
-                padding: '10px', 
-                backgroundColor: 'var(--background-secondary)',
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto'
-              }}>
-                {segment.content}
-              </pre>
-            </div>
-          ) : (
+          <>
             <div 
               ref={containerRef}
-              dangerouslySetInnerHTML={{ __html: svgContent }}
-              style={{ maxWidth: '100%' }}
+              style={{ 
+                width: '100%', 
+                display: isRendering ? 'none' : 'block',
+                minHeight: '50px'
+              }}
             />
-          )
+            
+            {/* Loading indicator */}
+            {isRendering && (
+              <div style={{ 
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '20px'
+              }}>
+                <div>正在渲染图表...</div>
+                <div style={{ 
+                  width: '50px', 
+                  height: '6px', 
+                  backgroundColor: 'var(--background-modifier-border)',
+                  borderRadius: '3px',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    height: '100%',
+                    width: '30%',
+                    backgroundColor: 'var(--interactive-accent)',
+                    borderRadius: '3px',
+                    animation: 'loading-animation 1.5s infinite ease-in-out'
+                  }}/>
+                </div>
+                <style>
+                  {`
+                    @keyframes loading-animation {
+                      0% { left: -30%; }
+                      100% { left: 100%; }
+                    }
+                  `}
+                </style>
+              </div>
+            )}
+            
+            {/* Error indicator */}
+            {renderError && (
+              <div style={{ 
+                color: 'var(--text-error)', 
+                padding: '10px', 
+                textAlign: 'center' 
+              }}>
+                <div style={{ 
+                  marginBottom: '10px', 
+                  fontWeight: 'bold' 
+                }}>
+                  {renderError}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Mermaid 支持的图表类型: flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, 
+                  gantt, pie, journey, gitGraph, mindmap 等。
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  <a 
+                    href="https://mermaid.js.org/syntax/flowchart.html" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--text-accent)' }}
+                  >
+                    查看 Mermaid 语法文档
+                  </a>
+                </div>
+                <pre style={{ 
+                  marginTop: '10px', 
+                  padding: '10px', 
+                  backgroundColor: 'var(--background-secondary)',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  overflow: 'auto',
+                  textAlign: 'left'
+                }}>
+                  {segment.content}
+                </pre>
+              </div>
+            )}
+          </>
         ) : (
           <pre style={{ 
             width: '100%',
