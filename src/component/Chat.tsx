@@ -12,9 +12,9 @@ export interface Message {
   id: string;
   content: string;
   timestamp: number;
-  sender: 'user' | 'assistant';
+  role: 'user' | 'assistant';
   favorite: boolean;
-  responsetime?: number; // AI响应时间（毫秒）
+  responseTime?: number; // AI响应时间（毫秒）
   tokencount?: number;   // 消息的token数量
   imageData?: string;    // 图片的base64数据
   imagePath?: string;    // 图片在仓库中的路径
