@@ -299,4 +299,30 @@ export class OllamaService implements AIService {
       throw err;
     }
   }
+
+  /**
+   * 删除指定的模型
+   * @param modelName 模型名称
+   */
+  async deleteModel(modelName: string): Promise<void> {
+    try {
+      // 去除可能存在的":undefined"后缀
+      const cleanModelName = modelName.replace(/:undefined$/, '');
+      
+      const response = await fetch(`${this.baseUrl}/api/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: cleanModelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`删除模型失败: ${response.statusText}`);
+      }
+    } catch (err) {
+      console.error(`删除模型 ${modelName} 出错:`, err);
+      throw err;
+    }
+  }
 }

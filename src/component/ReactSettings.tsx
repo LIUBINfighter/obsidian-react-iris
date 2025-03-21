@@ -1,5 +1,5 @@
 import React from 'react';
-import { OllamaSettings } from './OllamaSettings';
+import { OllamaSettings } from './ollama/OllamaSettings';
 
 export function ReactSettings() {
   return (
