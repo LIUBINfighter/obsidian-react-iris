@@ -171,8 +171,18 @@ export const ChatComponent: React.FC<ChatProps> = ({
     
     console.log('ChatComponent: User message created', userMessage);
     
+    // 创建临时 AI 消息
+    const aiMessageId = generateId();
+    const aiMessage: Message = {
+      id: aiMessageId,
+      content: '',
+      timestamp: Date.now(),
+      sender: 'assistant',
+      favorite: false,
+    };
+
     // 更新消息列表
-    const updatedMessages = [...messages, userMessage];
+    const updatedMessages = [...messages, userMessage, aiMessage];
     setMessages(updatedMessages);
     console.log('ChatComponent: Messages updated with user message', updatedMessages);
     setInputValue('');
@@ -225,24 +235,27 @@ export const ChatComponent: React.FC<ChatProps> = ({
       console.log('ChatComponent: Sending streaming request to AI service', {
         messages: updatedMessages,
         systemPrompt: aiConfig.aiService?.systemPrompt,
-        signal: controller.signal
+        signal: controller.signal,
+        messageId: aiMessageId // Pass the message ID
       });
       
       await aiService.sendStreamingRequest(
         {
           messages: updatedMessages,
           systemPrompt: aiConfig.aiService?.systemPrompt,
-          signal: controller.signal
+          signal: controller.signal,
+          messageId: aiMessageId // Pass the message ID
         },
         (response) => {
           console.log('ChatComponent: Received AI stream update', response);
-          const updatedMessagesWithAI = updatedMessages.map(msg => {
-            if (msg.sender === 'assistant' && msg.id === response.messageId) {
-              return { ...msg, content: response.content };
-            }
-            return msg;
+          setMessages((prevMessages) => {
+            return prevMessages.map(msg => {
+              if (msg.sender === 'assistant' && msg.id === aiMessageId) {
+                return { ...msg, content: response.content };
+              }
+              return msg;
+            });
           });
-          setMessages(updatedMessagesWithAI);
         }
       );
       
