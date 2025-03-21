@@ -2,7 +2,6 @@ import { ItemView, WorkspaceLeaf } from 'obsidian';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { ExampleReactComponent } from '../component/Example';
-import { EditorComponent } from '../component/MarkdownEditor';
 import { SettingComponent } from '../component/Setting';
 import { ChatComponent, Message } from '../component/Chat';
 import { SidebarComponent } from '../component/Sidebar';
@@ -67,15 +66,7 @@ export class ReadMeView extends ItemView {
       }
     });
     
-    const editorTab = tabsContainer.createEl("button", {
-      text: "编辑器",
-      cls: `tab-button ${this.activeTab === TabType.EDITOR ? 'active' : ''}`,
-      attr: {
-        'data-tab': TabType.EDITOR,
-        'style': 'margin-right: 10px;'
-      }
-    });
-    
+
     // 新增设置选项卡按钮
     const settingsTab = tabsContainer.createEl("button", {
       text: "设置",
@@ -99,27 +90,22 @@ export class ReadMeView extends ItemView {
     // 添加选项卡点击事件
     exampleTab.addEventListener("click", () => {
       this.setActiveTab(TabType.EXAMPLE);
-      this.updateTabs(exampleTab, [editorTab, settingsTab, chatTab]);
+      this.updateTabs(exampleTab, [ settingsTab, chatTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
-    editorTab.addEventListener("click", () => {
-      this.setActiveTab(TabType.EDITOR);
-      this.updateTabs(editorTab, [exampleTab, settingsTab, chatTab]);
-      this.renderReactComponent(container as HTMLElement);
-    });
     
     // 新增设置选项卡点击事件
     settingsTab.addEventListener("click", () => {
       this.setActiveTab(TabType.SETTINGS);
-      this.updateTabs(settingsTab, [exampleTab, editorTab, chatTab]);
+      this.updateTabs(settingsTab, [exampleTab, chatTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
     // 新增聊天选项卡点击事件
     chatTab.addEventListener("click", () => {
       this.setActiveTab(TabType.CHAT);
-      this.updateTabs(chatTab, [exampleTab, editorTab, settingsTab]);
+      this.updateTabs(chatTab, [exampleTab, settingsTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
@@ -217,9 +203,6 @@ export class ReadMeView extends ItemView {
           case TabType.EXAMPLE:
             componentTitle = "React 组件示例";
             break;
-          case TabType.EDITOR:
-            componentTitle = "React 编辑器组件";
-            break;
           case TabType.SETTINGS:
             componentTitle = "React 设置组件";
             break;
@@ -256,51 +239,6 @@ export class ReadMeView extends ItemView {
           React.createElement(ExampleReactComponent, { name: "Obsidian用户" })
         );
         console.log("Example组件已渲染");
-      } else if (this.activeTab === TabType.EDITOR) {
-        // 创建包含Mermaid图表的示例文本
-        const sampleText = `# Markdown编辑器示例
-
-这是一个简单的Markdown编辑器示例，支持Obsidian的渲染功能。
-
-## Mermaid流程图示例
-
-\`\`\`mermaid
-graph TD
-    A[开始] --> B{是否继续?}
-    B -->|是| C[处理任务]
-    B -->|否| D[结束流程]
-    C --> E[保存结果]
-    E --> B
-    D --> F[完成]
-\`\`\`
-
-## 代码块示例
-
-\`\`\`javascript
-// 一个简单的JavaScript函数
-function sayHello(name) {
-    console.log(\`你好，\${name}！\`);
-    return \`欢迎使用Obsidian，\${name}\`;
-}
-\`\`\`
-
-## 表格示例
-
-| 功能 | 描述 | 支持状态 |
-|------|------|---------|
-| Markdown | 基本Markdown语法 | ✅ |
-| Mermaid | 流程图等图表支持 | ✅ |
-| 代码高亮 | 支持多种语言 | ✅ |
-
-可以在编辑模式下修改文本，然后切换回预览模式查看效果。`;
-
-        this.root.render(
-          React.createElement(EditorComponent, { 
-            initialText: sampleText,
-            app: this.app
-          })
-        );
-        console.log("Editor组件已渲染");
       } else if (this.activeTab === TabType.SETTINGS) {
         // 渲染设置组件
         this.root.render(

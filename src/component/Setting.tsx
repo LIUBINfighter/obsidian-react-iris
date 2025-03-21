@@ -269,7 +269,6 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
       <div className="setting-item" style={{ marginBottom: '20px' }}>
         <div className="setting-item-info" style={{ marginBottom: '8px' }}>
           <div className="setting-item-name" style={{ fontWeight: 'bold' }}>自动保存</div>
-          <div className="setting-item-description">编辑器是否自动保存内容</div>
         </div>
         <div className="setting-item-control">
           <div style={{ display: 'flex', alignItems: 'center' }}>
