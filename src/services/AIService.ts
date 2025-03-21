@@ -26,8 +26,11 @@ export interface AIResponseStream {
  * AI服务接口 - 定义所有AI服务应该实现的方法
  */
 export interface AIService {
-  // 发送请求并获取完整响应
+  // 重载方法：接受对象格式请求
   sendRequest(options: AIRequestOptions): Promise<Message>;
+  
+  // 重载方法：接受字符串格式请求
+  sendRequest(prompt: string): Promise<string>;
   
   // 发送请求并获取流式响应
   sendStreamingRequest(

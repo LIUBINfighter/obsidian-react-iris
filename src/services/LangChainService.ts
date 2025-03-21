@@ -16,11 +16,17 @@ export class LangChainService implements AIService {
   private baseUrl: string;
   private options: LangChainOptions;
   private controller: AbortController | null = null;
+  private model: ChatOllama; // 添加模型属性
+  private systemPrompt: string;
   
   constructor(options: LangChainOptions) {
     this.baseUrl = options.baseUrl || 'http://localhost:11434';
     this.modelName = options.modelName || 'deepseek-r1:latest';
     this.options = options;
+    this.systemPrompt = options.systemPrompt || "你是一个有用的AI助手。";
+    
+    // 初始化模型
+    this.model = this.createChatModel();
   }
   
   private createChatModel() {
@@ -53,7 +59,36 @@ export class LangChainService implements AIService {
     return result;
   }
   
-  async sendRequest(options: AIRequestOptions): Promise<Message> {
+  // 重载 sendRequest 方法以接受字符串
+  async sendRequest(promptOrOptions: string | AIRequestOptions): Promise<Message | string> {
+    // 处理字符串类型的请求
+    if (typeof promptOrOptions === 'string') {
+      this.controller = new AbortController();
+      
+      try {
+        console.log("LangChain 发送字符串请求:", promptOrOptions.substring(0, 100) + "...");
+        
+        // 直接使用模型处理字符串请求
+        const messages = [
+          new SystemMessage(this.systemPrompt),
+          new HumanMessage(promptOrOptions)
+        ];
+        
+        const response = await this.model.invoke(messages, {
+          signal: this.controller.signal
+        });
+        
+        return response.content;
+      } catch (error) {
+        console.error("LangChain 字符串请求错误:", error);
+        throw new Error(`AI请求失败: ${error.message}`);
+      } finally {
+        this.controller = null;
+      }
+    }
+    
+    // 处理 AIRequestOptions 类型的请求
+    const options = promptOrOptions as AIRequestOptions;
     const { messages, systemPrompt } = options;
     
     this.controller = new AbortController();
