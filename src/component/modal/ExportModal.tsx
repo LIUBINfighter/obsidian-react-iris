@@ -72,7 +72,7 @@ const ExportModalContent: React.FC<ExportModalProps> = ({
   // 状态
   const [title, setTitle] = useState(defaultTitle || '导出的AI对话');
   const [tags, setTags] = useState<string[]>(['AI', 'chat']);
-  const [folderPath, setFolderPath] = useState(settings.defaultExportFolder || 'inbox/');
+  const [folderPath, setFolderPath] = useState(settings.defaultExportFolder || '/inbox');
   const [tagsInput, setTagsInput] = useState('AI, chat');
   const [folders, setFolders] = useState<string[]>([]);
   

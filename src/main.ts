@@ -21,7 +21,7 @@ const DEFAULT_SETTINGS: ReactIrisSettings = {
 	modelName: 'gemma:2b',
 	temperature: 0.7,
 	serviceType: 'langchain',
-	defaultExportFolder: 'inbox/' // 默认导出到 inbox 文件夹
+	defaultExportFolder: '/inbox' // 默认导出到 inbox 文件夹
 }
 
 export default class ReactIris extends Plugin {

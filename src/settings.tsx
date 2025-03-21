@@ -21,7 +21,7 @@ const SettingTab: React.FC<SettingTabProps> = ({ settings, onSettingsChange }) =
               ...settings,
               defaultExportFolder: e.target.value
             })}
-            placeholder="例如: inbox/"
+            placeholder="例如: /inbox"
           />
         </div>
       </div>
