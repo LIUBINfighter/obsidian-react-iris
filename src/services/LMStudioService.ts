@@ -86,10 +86,31 @@ export class LMStudioService implements AIService {
     
     // 添加对话消息
     messages.forEach(msg => {
-      formattedMessages.push({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      });
+      // 处理特殊消息类型
+      if (msg.isContext) {
+        // 上下文消息作为系统消息添加
+        formattedMessages.push({
+          role: 'system',
+          content: msg.content
+        });
+      } 
+      // 处理包含图像的消息
+      else if (msg.imageData) {
+        formattedMessages.push({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: [
+            { type: "text", text: msg.content },
+            { type: "image_url", image_url: { url: msg.imageData } }
+          ]
+        });
+      }
+      // 普通文本消息
+      else {
+        formattedMessages.push({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        });
+      }
     });
     
     return formattedMessages;

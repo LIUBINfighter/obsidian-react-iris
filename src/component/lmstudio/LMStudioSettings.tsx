@@ -450,7 +450,8 @@ export function LMStudioSettings() {
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>LM Studio 配置</h2>
-      
+      {/* <>/// <ref="https://lmstudio.ai/docs/app/api/endpoints/rest" />
+	  </> */}
       <div style={styles.connectionStatus}>
         <div style={styles.commandRow}>
           <button 
