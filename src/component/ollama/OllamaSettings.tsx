@@ -409,18 +409,20 @@ export function OllamaSettings() {
       <h2 style={styles.heading}>Ollama 配置</h2>
       
       <div style={styles.connectionStatus}>
-        
-	  <button 
-          onClick={testConnection} 
-          disabled={loading}
-          style={{
-            ...styles.button,
-            ...(loading ? styles.buttonDisabled : {})
-          }}
-        >
-          测试连接
-        </button>
-		<div style={{
+        <div style={styles.commandRow}>
+          <button 
+            onClick={testConnection} 
+            disabled={loading}
+            style={{
+              ...styles.button,
+              ...(loading ? styles.buttonDisabled : {})
+            }}
+          >
+            测试连接
+          </button>
+          <span style={styles.commandText}>curl http://localhost:11434/api/version</span>
+          <span style={styles.commandDesc}>检测Ollama服务是否运行</span>
+		  <div style={{
           ...styles.statusIndicator,
           ...(connectionStatus === 'connected' ? styles.connected : 
              connectionStatus === 'disconnected' ? styles.disconnected : 
@@ -428,6 +430,7 @@ export function OllamaSettings() {
         }}>
           {connectionStatus === 'connected' ? '已连接' :
            connectionStatus === 'disconnected' ? '未连接' : '未知'}
+        </div>
         </div>
       </div>
 
