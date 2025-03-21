@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { App, TFile } from 'obsidian';
+import { App, TFile, setIcon } from 'obsidian';
 import { ImageAttachmentSelector } from './modal/ImageAttachmentSelector';
 
 interface ChatInputProps {
@@ -32,12 +32,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{base64: string, file: TFile} | null>(null);
   
+  // 图标引用
+  const imageIconRef = useRef<HTMLSpanElement>(null);
+  
   // 自动聚焦输入框
   useEffect(() => {
     if (inputRef.current && !isDisabled) {
       inputRef.current.focus();
     }
   }, [isDisabled]);
+  
+  // 设置图标
+  useEffect(() => {
+    if (imageIconRef.current) {
+      setIcon(imageIconRef.current, 'image');
+    }
+  }, []);
   
   // 处理键盘事件
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -162,7 +172,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             gap: '5px'
           }}
         >
-          <span style={{ fontSize: '16px' }}>📷</span>
+          <span 
+            ref={imageIconRef} 
+            style={{ 
+              fontSize: '16px', 
+              display: 'flex', 
+              alignItems: 'center',
+              position: 'relative',
+              top: '1px'
+            }}
+          ></span>
           添加图片
         </button>
       </div>
