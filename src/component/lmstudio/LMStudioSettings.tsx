@@ -17,6 +17,14 @@ export function LMStudioSettings() {
   const [temperature, setTemperature] = useState<number>(0.7);
   const [responseTime, setResponseTime] = useState<number>(0);
   const [tokenCount, setTokenCount] = useState<number>(0);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePrompt, setImagePrompt] = useState<string>("请描述这张图片中的内容，并告诉我你看到了什么？");
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [imageResponse, setImageResponse] = useState<string | null>(null);
+  
+  // 默认图像模型
+  const defaultImageModel = "llava-v1.5-7b";
 
   const lmStudioService = new LMStudioService({ baseUrl: 'http://127.0.0.1:1234', modelName: selectedModel });
 
@@ -146,6 +154,114 @@ export function LMStudioSettings() {
     }
     
     return progressBar;
+  };
+
+  // 处理图片上传
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setImageFile(file);
+    
+    // 转换图片为base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setImageBase64(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // 发送图片识别请求
+  const sendImageRequest = async () => {
+    if (!imageBase64 || !selectedModel) return;
+    
+    setIsImageProcessing(true);
+    setError(null);
+    setImageResponse('');
+    const startTime = Date.now();
+    
+    try {
+      // 创建包含图片的消息
+      const messages = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: imagePrompt },
+            { type: "image_url", image_url: { url: imageBase64 } }
+          ]
+        }
+      ];
+      
+      // 构建请求体
+      const requestBody = {
+        model: defaultImageModel,  // 使用指定的图像模型
+        messages: messages,
+        temperature: temperature,
+        max_tokens: -1,
+        stream: true
+      };
+      
+      // 发送请求
+      const response = await fetch(`${lmStudioService.baseUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`图像识别请求失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+      
+      const decoder = new TextDecoder();
+      let content = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          setImageResponse(content);
+          setResponseTime(Date.now() - startTime);
+          setTokenCount(estimateTokenCount(content));
+          setIsImageProcessing(false);
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6); // 去掉 "data: " 前缀
+            
+            if (dataStr === "[DONE]") {
+              continue;
+            }
+            
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                content += data.choices[0].delta.content;
+                setImageResponse(content);
+              }
+            } catch (e) {
+              console.warn('无法解析JSON响应:', line);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setError('图像识别请求失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsImageProcessing(false);
+    }
   };
 
   // 内联样式定义
@@ -320,6 +436,14 @@ export function LMStudioSettings() {
       marginTop: '8px',
       color: 'var(--text-muted)',
       fontSize: '12px'
+    },
+    input: {
+      padding: '6px 12px',
+      border: '1px solid var(--background-modifier-border)',
+      borderRadius: '4px',
+      backgroundColor: 'var(--background-modifier-form-field)',
+      color: 'var(--text-normal)',
+      width: '100%'
     }
   };
 
@@ -536,6 +660,96 @@ export function LMStudioSettings() {
                 {isStreaming ? '正在生成回复...' : '点击"发送测试请求"按钮开始测试'}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 图片识别测试部分 */}
+      {connectionStatus === 'connected' && models.length > 0 && (
+        <div style={styles.commandSection}>
+          <h3 style={styles.heading}>图片识别测试</h3>
+          
+          <div style={styles.formField}>
+            <label style={styles.formLabel}>图片上传:</label>
+            <div style={{ marginTop: '8px', marginBottom: '12px' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={isImageProcessing}
+                style={{ display: 'block', marginBottom: '8px' }}
+              />
+              {imageBase64 && (
+                <div style={{ marginTop: '12px' }}>
+                  <img 
+                    src={imageBase64} 
+                    alt="上传的图片" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '300px',
+                      border: '1px solid var(--background-modifier-border)',
+                      borderRadius: '4px'
+                    }} 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div style={styles.formField}>
+            <label style={styles.formLabel}>图片提示:</label>
+            <input
+              type="text"
+              value={imagePrompt}
+              onChange={(e) => setImagePrompt(e.target.value)}
+              style={styles.input}
+              disabled={isImageProcessing}
+            />
+          </div>
+          
+          <div style={{marginTop: '12px'}}>
+            <button 
+              onClick={sendImageRequest}
+              disabled={!imageBase64 || isImageProcessing}
+              style={{
+                ...styles.button,
+                ...(!imageBase64 || isImageProcessing ? styles.buttonDisabled : {})
+              }}
+            >
+              {isImageProcessing ? '识别中...' : '发送图片识别请求'}
+            </button>
+          </div>
+          
+          <div style={{marginTop: '16px'}}>
+            <h4 style={{margin: '0 0 8px 0'}}>AI 响应</h4>
+            <div style={styles.chatResponse}>
+              {isImageProcessing && (
+                <div style={{marginBottom: '8px'}}>
+                  <div style={styles.commandLineProgressBar}>
+                    {renderBrailleProgressBar(50)}
+                  </div>
+                  <div style={styles.progressInfo}>
+                    <span>识别中...</span>
+                  </div>
+                </div>
+              )}
+              
+              {imageResponse ? (
+                <>
+                  <div>{imageResponse}</div>
+                  {!isImageProcessing && (
+                    <div style={styles.responseStats}>
+                      <span>响应时间: {responseTime}ms</span>
+                      <span>估计 Token 数: {tokenCount}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{color: 'var(--text-muted)'}}>
+                  {isImageProcessing ? '正在识别图片...' : '点击"发送图片识别请求"按钮开始测试'}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

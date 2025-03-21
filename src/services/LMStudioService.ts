@@ -19,7 +19,8 @@ export interface LMStudioModelsResponse {
 }
 
 export class LMStudioService implements AIService {
-  private baseUrl: string;
+  // 修改为公开访问
+  readonly baseUrl: string; 
   private modelName: string;
   private controller: AbortController | null = null;
   private options: LMStudioOptions;
