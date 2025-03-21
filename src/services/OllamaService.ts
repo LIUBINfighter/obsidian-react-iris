@@ -7,6 +7,24 @@ export interface OllamaOptions extends AIServiceOptions {
   numCtx?: number;
 }
 
+export interface OllamaModel {
+  name: string;
+  tag: string;
+  size: number;
+  modified_at: string;
+  digest: string;
+}
+
+export interface OllamaResponse {
+  models: OllamaModel[];
+}
+
+export interface PullProgressResponse {
+  status: string;
+  completed: number;
+  total: number;
+}
+
 export class OllamaService implements AIService {
   private baseUrl: string;
   private modelName: string;
@@ -190,6 +208,95 @@ export class OllamaService implements AIService {
       this.controller.abort();
       this.controller = null;
       console.log('请求已取消');
+    }
+  }
+
+  /**
+   * 测试与Ollama的连接
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/version`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.ok;
+    } catch (err) {
+      console.error('Failed to connect to Ollama:', err);
+      return false;
+    }
+  }
+
+  /**
+   * 获取所有可用的模型列表
+   */
+  async listModels(): Promise<OllamaModel[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tags`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to list models: ${response.statusText}`);
+      }
+      
+      const data = await response.json() as OllamaResponse;
+      return data.models || [];
+    } catch (err) {
+      console.error('Error listing models:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * 拉取/下载指定的模型
+   * @param modelName 模型名称
+   * @param onProgress 进度回调函数
+   */
+  async pullModel(modelName: string, onProgress: (progress: PullProgressResponse) => void): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/pull`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        lines.forEach(line => {
+          try {
+            const data = JSON.parse(line) as PullProgressResponse;
+            onProgress(data);
+          } catch (e) {
+            console.error('无法解析JSON响应', e);
+          }
+        });
+      }
+    } catch (err) {
+      console.error(`Error pulling model ${modelName}:`, err);
+      throw err;
     }
   }
 }

@@ -48,7 +48,6 @@ export class ReadMeView extends ItemView {
     // 添加ReadMe部分
     const readmeSection = container.createEl("div", { cls: "readme-section" });
     readmeSection.createEl("h1", { text: "React Iris Plugin ReadMe" });
-    readmeSection.createEl("p", { text: "这是一个展示如何在Obsidian中使用React的插件示例。" });
     
     // 创建选项卡容器
     const tabsContainer = readmeSection.createEl("div", { 

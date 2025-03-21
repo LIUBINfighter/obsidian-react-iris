@@ -1,0 +1,169 @@
+.ollama-settings {
+  padding: 16px;
+  font-family: var(--font-interface);
+  color: var(--text-normal);
+}
+
+.ollama-settings h2,
+.ollama-settings h3 {
+  margin-top: 16px;
+  margin-bottom: 12px;
+  color: var(--text-normal);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.status-indicator {
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-right: 16px;
+  font-weight: 500;
+}
+
+.status-indicator.connected {
+  background-color: rgba(0, 200, 83, 0.2);
+  color: rgb(0, 150, 60);
+}
+
+.status-indicator.disconnected {
+  background-color: rgba(255, 0, 0, 0.2);
+  color: rgb(200, 0, 0);
+}
+
+.status-indicator.unknown {
+  background-color: rgba(150, 150, 150, 0.2);
+  color: rgb(100, 100, 100);
+}
+
+button {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+button:disabled {
+  background-color: var(--interactive-accent-muted);
+  cursor: not-allowed;
+}
+
+.command-section {
+  margin-bottom: 24px;
+}
+
+.command-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.command-text {
+  margin-left: 16px;
+  font-family: monospace;
+  background-color: var(--background-modifier-form-field);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.command-desc {
+  margin-left: 16px;
+  color: var(--text-muted);
+}
+
+.error-message {
+  color: var(--text-error);
+  background-color: rgba(255, 0, 0, 0.1);
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.models-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.models-table th, 
+.models-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  text-align: left;
+}
+
+.models-table th {
+  background-color: var(--background-secondary);
+  font-weight: 500;
+}
+
+.no-models {
+  padding: 16px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.loading {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.download-section {
+  margin-top: 24px;
+}
+
+.download-form {
+  display: flex;
+  margin-bottom: 12px;
+}
+
+.download-form input {
+  flex: 1;
+  margin-right: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background-color: var(--background-modifier-form-field);
+  color: var(--text-normal);
+}
+
+.download-progress {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.progress-bar-container {
+  height: 8px;
+  background-color: var(--background-modifier-border);
+  border-radius: 4px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--interactive-accent);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+}

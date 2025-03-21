@@ -99,7 +99,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             style={{ cursor: 'pointer' }}
             title="点击切换服务"
           >
-            {serviceType === 'langchain' ? 'ChatGPT 模式' : 'Ollama 模式'}
+            {serviceType === 'langchain' ? 'langchain' : 'Ollama'}
           </span>
         </>
       )}
