@@ -100,7 +100,8 @@ export class LMStudioService implements AIService {
     this.controller = new AbortController();
     
     try {
-      const response = await fetch(`${this.baseUrl}/v1/chat/completion`, {
+      // 端点修改：从 /completion 改为 /completions (注意复数形式)
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +154,8 @@ export class LMStudioService implements AIService {
     let isCompleteEmitted = false;
     
     try {
-      const response = await fetch(`${this.baseUrl}/v1/chat/completion`, {
+      // 端点修改：从 /completion 改为 /completions (注意复数形式)
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

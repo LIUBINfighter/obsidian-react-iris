@@ -11,12 +11,12 @@ export function LMStudioSettings() {
   const [models, setModels] = useState<LMStudioModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [chatInput, setChatInput] = useState<string>('');
   const [chatResponse, setChatResponse] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [systemPrompt, setSystemPrompt] = useState<string>('Always answer in rhymes.');
   const [temperature, setTemperature] = useState<number>(0.7);
+  const [responseTime, setResponseTime] = useState<number>(0);
+  const [tokenCount, setTokenCount] = useState<number>(0);
 
   const lmStudioService = new LMStudioService({ baseUrl: 'http://127.0.0.1:1234', modelName: selectedModel });
 
@@ -64,28 +64,36 @@ export function LMStudioSettings() {
     }
   };
 
+  // 固定的测试消息内容
+  const fixedUserMessage = "请介绍一下你自己，并用3个要点概括LLM的特性。";
+  const fixedSystemPrompt = "你是一个有用的AI助手，请用简明扼要的语言回答问题。";
+
   // 发送聊天请求
   const sendChatRequest = async () => {
-    if (!selectedModel || !chatInput.trim()) {
+    if (!selectedModel) {
       return;
     }
     
     setIsStreaming(true);
     setError(null);
     setChatResponse('');
+    const startTime = Date.now();
     
     try {
       // 使用流式请求
       await lmStudioService.sendStreamingRequest(
         {
-          messages: [{ id: '1', content: chatInput, timestamp: Date.now(), sender: 'user', favorite: false }],
-          systemPrompt: systemPrompt,
+          messages: [{ id: '1', content: fixedUserMessage, timestamp: Date.now(), sender: 'user', favorite: false }],
+          systemPrompt: fixedSystemPrompt,
           temperature: temperature,
           maxTokens: -1 // 不限制生成长度
         },
         (response) => {
           setChatResponse(response.content);
           if (response.isComplete) {
+            const endTime = Date.now();
+            setResponseTime(endTime - startTime);
+            setTokenCount(estimateTokenCount(response.content));
             setIsStreaming(false);
           }
         }
@@ -96,12 +104,51 @@ export function LMStudioSettings() {
     }
   };
 
+  // 估算token数量（简单实现）
+  const estimateTokenCount = (text: string): number => {
+    return Math.ceil(text.length / 4);
+  };
+
   // 组件加载时测试连接
   useEffect(() => {
     testConnection();
   }, []);
 
-  // 内联样式定义，与OllamaSettings保持一致
+  // 格式化JSON以增加可读性
+  const formatJSON = (json: any): string => {
+    return JSON.stringify(json, null, 2);
+  };
+
+  // 创建盲文点阵风格的进度条
+  const renderBrailleProgressBar = (progress: number, width: number = 20) => {
+    // 盲文点阵字符，从空到满
+    const brailleChars = ['⣀', '⣤', '⣶', '⣿'];
+    
+    // 计算填充部分
+    const filledCharsCount = Math.floor((progress / 100) * width);
+    const partialCharIndex = Math.floor((((progress / 100) * width) % 1) * brailleChars.length);
+    
+    let progressBar = '';
+    
+    // 添加完全填充的字符
+    for (let i = 0; i < filledCharsCount; i++) {
+      progressBar += '⣿'; // 完全填充的盲文字符
+    }
+    
+    // 添加部分填充的字符（如果有）
+    if (filledCharsCount < width && progress > 0) {
+      progressBar += brailleChars[partialCharIndex];
+    }
+    
+    // 添加空白字符直到达到所需宽度
+    while (progressBar.length < width) {
+      progressBar += '⠀'; // 空盲文字符
+    }
+    
+    return progressBar;
+  };
+
+  // 内联样式定义
   const styles = {
     container: {
       padding: '16px',
@@ -185,36 +232,34 @@ export function LMStudioSettings() {
       marginRight: '8px',
       minWidth: '200px'
     },
-    input: {
-      flex: 1,
-      marginRight: '8px',
-      padding: '6px 12px',
-      border: '1px solid var(--background-modifier-border)',
-      borderRadius: '4px',
-      backgroundColor: 'var(--background-modifier-form-field)',
-      color: 'var(--text-normal)'
-    },
-    textarea: {
+    modelList: {
       width: '100%',
-      minHeight: '100px',
-      marginBottom: '12px',
-      padding: '8px',
-      border: '1px solid var(--background-modifier-border)',
-      borderRadius: '4px',
-      backgroundColor: 'var(--background-modifier-form-field)',
-      color: 'var(--text-normal)',
-      fontFamily: 'inherit',
-      resize: 'vertical' as const
-    },
-    chatForm: {
+      borderCollapse: 'collapse',
       marginTop: '12px'
     },
-    chatResponse: {
-      marginTop: '16px',
-      padding: '12px',
+    tableHeader: {
+      padding: '8px 12px',
+      border: '1px solid var(--background-modifier-border)',
+      textAlign: 'left',
+      backgroundColor: 'var(--background-secondary)',
+      fontWeight: 500
+    },
+    tableCell: {
+      padding: '8px 12px',
+      border: '1px solid var(--background-modifier-border)',
+      textAlign: 'left' as const
+    },
+    noModels: {
+      padding: '16px',
       backgroundColor: 'var(--background-secondary)',
       borderRadius: '4px',
-      whiteSpace: 'pre-wrap' as const
+      textAlign: 'center' as const,
+      color: 'var(--text-muted)'
+    },
+    loading: {
+      padding: '16px',
+      textAlign: 'center' as const,
+      color: 'var(--text-muted)'
     },
     formField: {
       marginBottom: '12px'
@@ -223,6 +268,58 @@ export function LMStudioSettings() {
       display: 'block',
       marginBottom: '4px',
       fontWeight: 500
+    },
+    testRequest: {
+      backgroundColor: 'var(--background-secondary)',
+      padding: '12px',
+      borderRadius: '4px',
+      marginBottom: '16px'
+    },
+    requestCard: {
+      backgroundColor: 'var(--background-primary)',
+      border: '1px solid var(--background-modifier-border)',
+      borderRadius: '4px',
+      padding: '12px',
+      marginBottom: '12px'
+    },
+    preCode: {
+      backgroundColor: 'var(--background-primary-alt)',
+      padding: '8px',
+      borderRadius: '4px',
+      overflowX: 'auto' as const,
+      fontFamily: 'monospace',
+      fontSize: '12px',
+      whiteSpace: 'pre-wrap' as const,
+      margin: '8px 0'
+    },
+    chatResponse: {
+      marginTop: '16px',
+      padding: '12px',
+      backgroundColor: 'var(--background-secondary)',
+      borderRadius: '4px',
+      whiteSpace: 'pre-wrap' as const
+    },
+    commandLineProgressBar: {
+      margin: '8px 0',
+      fontSize: '18px',
+      lineHeight: '1.2',
+      whiteSpace: 'pre' as const,
+      letterSpacing: '1px'
+    },
+    progressInfo: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      fontSize: '12px',
+      color: 'var(--text-muted)',
+      marginTop: '4px'
+    },
+    responseStats: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginTop: '8px',
+      color: 'var(--text-muted)',
+      fontSize: '12px'
     }
   };
 
@@ -262,11 +359,61 @@ export function LMStudioSettings() {
         </div>
       )}
 
-      {/* 可用模型部分 */}
+      {/* 可用模型列表 */}
       {connectionStatus === 'connected' && (
         <div style={styles.commandSection}>
           <h3 style={styles.heading}>可用模型</h3>
           <div style={styles.commandRow}>
+            <button 
+              onClick={fetchModels} 
+              disabled={loading || connectionStatus !== 'connected'}
+              style={{
+                ...styles.button,
+                ...(loading || connectionStatus !== 'connected' ? styles.buttonDisabled : {})
+              }}
+            >
+              刷新模型列表
+            </button>
+            <span style={styles.commandText}>curl http://127.0.0.1:1234/v1/models</span>
+            <span style={styles.commandDesc}>获取所有已加载的模型列表</span>
+          </div>
+          
+          {loading ? (
+            <div style={styles.loading}>加载中...</div>
+          ) : models.length > 0 ? (
+            <table style={styles.modelList}>
+              <thead>
+                <tr>
+                  <th style={styles.tableHeader}>模型ID</th>
+                  <th style={styles.tableHeader}>所有者</th>
+                  <th style={styles.tableHeader}>创建时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {models.map(model => (
+                  <tr key={model.id}>
+                    <td style={styles.tableCell}>{model.id}</td>
+                    <td style={styles.tableCell}>{model.owned_by}</td>
+                    <td style={styles.tableCell}>{new Date(model.created * 1000).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={styles.noModels}>
+              {connectionStatus === 'connected' ? '未找到已加载的模型' : '请先连接到LM Studio服务'}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* 聊天测试部分 */}
+      {connectionStatus === 'connected' && models.length > 0 && (
+        <div style={styles.commandSection}>
+          <h3 style={styles.heading}>聊天测试</h3>
+          
+          <div style={styles.formField}>
+            <label style={styles.formLabel}>选择模型:</label>
             <select 
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
@@ -286,34 +433,6 @@ export function LMStudioSettings() {
                 </>
               )}
             </select>
-            <button 
-              onClick={fetchModels} 
-              disabled={loading || connectionStatus !== 'connected'}
-              style={{
-                ...styles.button,
-                ...(loading || connectionStatus !== 'connected' ? styles.buttonDisabled : {})
-              }}
-            >
-              刷新模型列表
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* 聊天测试部分 */}
-      {connectionStatus === 'connected' && selectedModel && (
-        <div style={styles.commandSection}>
-          <h3 style={styles.heading}>聊天测试</h3>
-          
-          <div style={styles.formField}>
-            <label style={styles.formLabel}>系统提示:</label>
-            <input
-              type="text"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              style={styles.input}
-              placeholder="系统提示..."
-            />
           </div>
           
           <div style={styles.formField}>
@@ -329,47 +448,95 @@ export function LMStudioSettings() {
             />
           </div>
           
-          <div style={styles.chatForm}>
-            <label style={styles.formLabel}>用户消息:</label>
-            <textarea
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              style={styles.textarea}
-              placeholder="输入你的消息..."
-              disabled={isStreaming}
-            />
+          <div style={styles.testRequest}>
+            <h4 style={{margin: '0 0 12px 0'}}>测试请求内容</h4>
             
-            <button 
-              onClick={sendChatRequest}
-              disabled={!chatInput.trim() || isStreaming}
-              style={{
-                ...styles.button,
-                ...(!chatInput.trim() || isStreaming ? styles.buttonDisabled : {})
-              }}
-            >
-              {isStreaming ? '生成中...' : '发送请求'}
-            </button>
-          </div>
-          
-          <div style={styles.commandText}>
-            命令: curl http://127.0.0.1:1234/v1/chat/completion -H "Content-Type: application/json" -d '{JSON.stringify({
-              model: selectedModel,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: chatInput || "Introduce yourself." }
-              ],
-              temperature: temperature,
-              max_tokens: -1,
-              stream: true
-            }, null, 2).replace(/"/g, '\\"')}'
-          </div>
-          
-          {chatResponse !== null && (
-            <div style={styles.chatResponse}>
-              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>AI 响应:</div>
-              {chatResponse || '(等待响应...)'}
+            <div style={styles.requestCard}>
+              <div><strong>系统提示:</strong></div>
+              <div style={styles.preCode}>{fixedSystemPrompt}</div>
+              
+              <div><strong>用户消息:</strong></div>
+              <div style={styles.preCode}>{fixedUserMessage}</div>
             </div>
-          )}
+            
+            <div style={{marginTop: '12px'}}>
+              <button 
+                onClick={sendChatRequest}
+                disabled={!selectedModel || isStreaming}
+                style={{
+                  ...styles.button,
+                  ...(!selectedModel || isStreaming ? styles.buttonDisabled : {})
+                }}
+              >
+                {isStreaming ? '生成中...' : '发送测试请求'}
+              </button>
+            </div>
+          </div>
+          
+          <div style={{marginBottom: '16px'}}>
+            <h4 style={{margin: '0 0 8px 0'}}>请求JSON</h4>
+            <pre style={styles.preCode}>
+              {formatJSON({
+                model: selectedModel,
+                messages: [
+                  { role: "system", content: fixedSystemPrompt },
+                  { role: "user", content: fixedUserMessage }
+                ],
+                temperature: temperature,
+                max_tokens: -1,
+                stream: true
+              })}
+            </pre>
+          </div>
+          
+          <div style={{marginBottom: '8px'}}>
+            <h4 style={{margin: '0 0 8px 0'}}>cURL 命令</h4>
+            <pre style={{...styles.preCode, overflowX: 'auto', whiteSpace: 'pre'}}>
+              curl http://127.0.0.1:1234/v1/chat/completions \<br/>
+              &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
+              &nbsp;&nbsp;-d '{JSON.stringify({
+                model: selectedModel,
+                messages: [
+                  { role: "system", content: fixedSystemPrompt },
+                  { role: "user", content: fixedUserMessage }
+                ],
+                temperature: temperature,
+                max_tokens: -1,
+                stream: true
+              }).replace(/"/g, '\\"')}'
+            </pre>
+          </div>
+          
+          {/* 流式响应显示区域 */}
+          <h4 style={{margin: '16px 0 8px 0'}}>AI 响应</h4>
+          <div style={styles.chatResponse}>
+            {isStreaming && (
+              <div style={{marginBottom: '8px'}}>
+                <div style={styles.commandLineProgressBar}>
+                  {renderBrailleProgressBar(50)}
+                </div>
+                <div style={styles.progressInfo}>
+                  <span>生成中...</span>
+                </div>
+              </div>
+            )}
+            
+            {chatResponse ? (
+              <>
+                <div>{chatResponse}</div>
+                {!isStreaming && (
+                  <div style={styles.responseStats}>
+                    <span>响应时间: {responseTime}ms</span>
+                    <span>估计 Token 数: {tokenCount}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{color: 'var(--text-muted)'}}>
+                {isStreaming ? '正在生成回复...' : '点击"发送测试请求"按钮开始测试'}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
