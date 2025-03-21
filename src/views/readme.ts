@@ -3,17 +3,14 @@ import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { ExampleReactComponent } from '../component/Example';
 import { SettingComponent } from '../component/Setting';
-import { ChatComponent, Message } from '../component/Chat';
-import { SidebarComponent } from '../component/Sidebar';
-import { LeftSidebarComponent } from '../component/LeftSidebar';
 import ReactIris from '../main';
 
 // 定义选项卡类型
 enum TabType {
   EXAMPLE = 'example',
   EDITOR = 'editor',
-  SETTINGS = 'settings',
-  CHAT = 'chat' // 新增聊天选项卡
+  SETTINGS = 'settings'
+  // 移除 CHAT 选项卡
 }
 
 // ReadMe视图实现
@@ -22,10 +19,6 @@ export class ReadMeView extends ItemView {
   activeTab: TabType = TabType.EXAMPLE; // 默认显示Example选项卡
   reactContainer: HTMLElement | null = null;
   plugin: ReactIris | null = null; // 添加插件实例引用
-  sidebarVisible: boolean = true; // 侧边栏可见性状态
-  leftSidebarVisible: boolean = true; // 左侧边栏可见性状态
-  sidebarRef = React.createRef<any>(); // 修改为any类型，以避免TypeScript警告
-  currentSessionId: string = 'default'; // 添加当前会话ID
 
   constructor(leaf: WorkspaceLeaf, plugin?: ReactIris) {
     super(leaf);
@@ -66,7 +59,7 @@ export class ReadMeView extends ItemView {
     });
     
 
-    // 新增设置选项卡按钮
+    // 设置选项卡按钮
     const settingsTab = tabsContainer.createEl("button", {
       text: "设置",
       cls: `tab-button ${this.activeTab === TabType.SETTINGS ? 'active' : ''}`,
@@ -76,37 +69,24 @@ export class ReadMeView extends ItemView {
       }
     });
     
-    // 新增聊天选项卡按钮
-    const chatTab = tabsContainer.createEl("button", {
-      text: "聊天",
-      cls: `tab-button ${this.activeTab === TabType.CHAT ? 'active' : ''}`,
-      attr: {
-        'data-tab': TabType.CHAT,
-        'style': 'margin-right: 10px;'
-      }
-    });
+    // 移除聊天选项卡按钮
     
     // 添加选项卡点击事件
     exampleTab.addEventListener("click", () => {
       this.setActiveTab(TabType.EXAMPLE);
-      this.updateTabs(exampleTab, [ settingsTab, chatTab]);
+      this.updateTabs(exampleTab, [settingsTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
     
-    // 新增设置选项卡点击事件
+    // 设置选项卡点击事件
     settingsTab.addEventListener("click", () => {
       this.setActiveTab(TabType.SETTINGS);
-      this.updateTabs(settingsTab, [exampleTab, chatTab]);
+      this.updateTabs(settingsTab, [exampleTab]);
       this.renderReactComponent(container as HTMLElement);
     });
     
-    // 新增聊天选项卡点击事件
-    chatTab.addEventListener("click", () => {
-      this.setActiveTab(TabType.CHAT);
-      this.updateTabs(chatTab, [exampleTab, settingsTab]);
-      this.renderReactComponent(container as HTMLElement);
-    });
+    // 移除聊天选项卡点击事件
     
     // 创建React部分的容器
     const reactSection = container.createEl("div", { 
@@ -129,52 +109,7 @@ export class ReadMeView extends ItemView {
     this.activeTab = tab;
   }
   
-  // 切换侧边栏可见性
-  toggleSidebar = () => {
-    this.sidebarVisible = !this.sidebarVisible;
-    // 重新渲染组件以反映侧边栏状态变化
-    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
-  }
-  
-  // 切换左侧边栏可见性
-  toggleLeftSidebar = () => {
-    this.leftSidebarVisible = !this.leftSidebarVisible;
-    // 重新渲染组件以反映侧边栏状态变化
-    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
-  }
-  
-  // 添加或删除消息到收藏，确保消息正确传递给Sidebar组件
-  handleAddToInbox = (message: Message & { action?: 'remove' }) => {
-    if (this.sidebarRef.current) {
-      if (message.action === 'remove') {
-        // 如果是移除操作
-        this.sidebarRef.current.removeFromFavorites(message.id);
-      } else {
-        // 如果是添加操作，传递当前会话ID
-        this.sidebarRef.current.addToFavorites(message, this.currentSessionId);
-      }
-    } else {
-      console.error("无法访问侧边栏引用，无法更新收藏");
-    }
-  }
-
-  // 切换会话
-  handleSelectSession = (sessionId: string) => {
-    console.log(`切换到会话: ${sessionId}`);
-    this.currentSessionId = sessionId;
-    // 重新渲染组件以反映会话变化
-    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
-  }
-
-  // 创建新会话
-  handleCreateNewSession = () => {
-    // 生成唯一ID作为新会话ID
-    const newSessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-    console.log(`创建新会话: ${newSessionId}`);
-    this.currentSessionId = newSessionId;
-    // 重新渲染组件以反映会话变化
-    this.renderReactComponent(this.containerEl.children[1] as HTMLElement);
-  }
+  // 移除聊天相关的方法（toggleSidebar, toggleLeftSidebar, handleAddToInbox, handleSelectSession, handleCreateNewSession）
   
   // 根据当前选项卡渲染相应的React组件
   renderReactComponent(container: Element) {
@@ -194,21 +129,19 @@ export class ReadMeView extends ItemView {
     reactSection.empty();
     
     try {
-      // 显示组件标题，聊天界面不需要标题
-      if (this.activeTab !== TabType.CHAT) {
-        let componentTitle = "";
-        
-        switch (this.activeTab) {
-          case TabType.EXAMPLE:
-            componentTitle = "React 组件示例";
-            break;
-          case TabType.SETTINGS:
-            componentTitle = "React 设置组件";
-            break;
-        }
-        
-        const reactHeader = reactSection.createEl("h2", { text: componentTitle });
+      // 显示组件标题
+      let componentTitle = "";
+      
+      switch (this.activeTab) {
+        case TabType.EXAMPLE:
+          componentTitle = "React 组件示例";
+          break;
+        case TabType.SETTINGS:
+          componentTitle = "React 设置组件";
+          break;
       }
+      
+      const reactHeader = reactSection.createEl("h2", { text: componentTitle });
       
       // 卸载现有的React根节点（如果存在）
       if (this.root) {
@@ -216,13 +149,11 @@ export class ReadMeView extends ItemView {
         this.root = null;
       }
       
-      // 创建新的React容器，聊天界面需要特殊样式
+      // 创建新的React容器
       this.reactContainer = reactSection.createEl("div", { 
         cls: "react-container",
         attr: { 
-          style: this.activeTab === TabType.CHAT 
-            ? "height: 500px; display: flex; border: 1px solid var(--background-modifier-border); border-radius: 5px;" 
-            : "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
+          style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
         }
       });
       
@@ -247,60 +178,8 @@ export class ReadMeView extends ItemView {
           })
         );
         console.log("Setting组件已渲染");
-      } else if (this.activeTab === TabType.CHAT) {
-        // 渲染聊天界面，包括左侧边栏、聊天组件和右侧边栏
-        this.root.render(
-          React.createElement('div', { 
-            style: { 
-              display: 'flex', 
-              width: '100%', 
-              height: '100%' 
-            } 
-          }, [
-            // 左侧边栏组件，传递会话相关的props
-            React.createElement(LeftSidebarComponent, {
-              key: 'left-sidebar',
-              app: this.app,
-              visible: this.leftSidebarVisible,
-              plugin: this.plugin,
-              currentSessionId: this.currentSessionId,
-              onSelectSession: this.handleSelectSession,
-              onCreateNewSession: this.handleCreateNewSession
-            }),
-            
-            // 聊天主界面
-            React.createElement('div', { 
-              key: 'chat-main',
-              style: { 
-                flex: 1,
-                height: '100%',
-                overflow: 'hidden'
-              } 
-            }, 
-              React.createElement(ChatComponent, {
-                app: this.app,
-                onAddToInbox: this.handleAddToInbox,
-                sidebarVisible: this.sidebarVisible,
-                toggleSidebar: this.toggleSidebar,
-                leftSidebarVisible: this.leftSidebarVisible,
-                toggleLeftSidebar: this.toggleLeftSidebar,
-                plugin: this.plugin,
-                sessionId: this.currentSessionId // 传递当前会话ID
-              })
-            ),
-            
-            // 右侧边栏组件
-            React.createElement(SidebarComponent, {
-              key: 'chat-sidebar',
-              app: this.app,
-              visible: this.sidebarVisible,
-              ref: this.sidebarRef,
-              plugin: this.plugin
-            })
-          ])
-        );
-        console.log("Chat组件已渲染，会话ID:", this.currentSessionId);
       }
+      // 移除聊天组件的渲染代码
     } catch (error) {
       console.error("渲染React组件时出错:", error);
       reactSection.createEl("div", {
