@@ -5,6 +5,7 @@ import { setIcon } from 'obsidian';
 import { AIServiceType } from '../services/AIServiceFactory';
 import { Header, createIconButtonStyle } from './common/Header';
 import ReactIris from '../main';
+import { OllamaService, OllamaModel } from '../services/OllamaService';
 
 interface ChatHeaderProps {
   title: string;
@@ -22,6 +23,8 @@ interface ChatHeaderProps {
   plugin?: ReactIris;
   serviceStatus?: 'ready' | 'testing' | 'offline';
   selectedModel?: string;
+  availableOllamaModels?: OllamaModel[];
+  onOllamaModelChange?: (modelName: string) => void;
 }
 
 /**
@@ -42,7 +45,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   app,
   plugin,
   serviceStatus = 'ready',
-  selectedModel = ''
+  selectedModel = '',
+  availableOllamaModels,
+  onOllamaModelChange,
 }) => {
   const leftSidebarIconRef = useRef<HTMLDivElement>(null);
   const rightSidebarIconRef = useRef<HTMLDivElement>(null);
@@ -50,14 +55,50 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [internalSelectedModel, setInternalSelectedModel] = useState<string>(selectedModel || '');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [lmStudioConnected, setLmStudioConnected] = useState(false);
+  const [ollamaConnected, setOllamaConnected] = useState(false);
   
   // 加载LM Studio模型列表
   useEffect(() => {
     if (serviceType === 'lmstudio') {
       loadLMStudioModels();
     }
+    if (serviceType === 'ollama') {
+      loadOllamaModels();
+    }
   }, [serviceType]);
   
+  const loadOllamaModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const ollamaService = new OllamaService({
+        baseUrl: 'http://127.0.0.1:11434',
+        modelName: ''
+      });
+
+      // 测试连接
+      const isConnected = await ollamaService.testConnection();
+      setOllamaConnected(isConnected);
+
+      if (isConnected) {
+        // 获取模型列表
+        const models = await ollamaService.listModels();
+        setAvailableModels(models);
+
+        // 如果有模型且没有选择过模型，自动选择第一个
+        if (models.length > 0 && !internalSelectedModel) {
+          setInternalSelectedModel(models[0].name);
+          if (onModelChange) {
+            onModelChange(models[0].name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载Ollama模型失败:', error);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
   // 加载LM Studio模型
   const loadLMStudioModels = async () => {
     setIsLoadingModels(true);
@@ -180,7 +221,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               fontSize: '12px'
             }}
           >
-            <option value="langchain">LangChain</option>
             <option value="ollama">Ollama</option>
             <option value="lmstudio">LM Studio</option>
           </select>
@@ -213,6 +253,39 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 availableModels.map(model => (
                   <option key={model.id} value={model.id}>
                     {model.id}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+          {/* Ollama模型选择 */}
+          {serviceType === 'ollama' && (
+            <select
+              value={internalSelectedModel}
+              onChange={handleModelChange}
+              disabled={!ollamaConnected || isLoadingModels}
+              style={{
+                padding: '2px 4px',
+                backgroundColor: 'var(--background-primary)',
+                color: 'var(--text-normal)',
+                border: '1px solid var(--background-modifier-border)',
+                borderRadius: '4px',
+                fontSize: '12px',
+                maxWidth: '120px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {isLoadingModels ? (
+                <option value="">加载中...</option>
+              ) : !ollamaConnected ? (
+                <option value="">未连接</option>
+              ) : availableModels.length === 0 ? (
+                <option value="">无可用模型</option>
+              ) : (
+                availableModels.map(model => (
+                  <option key={model.name} value={model.name}>
+                    {model.name}
                   </option>
                 ))
               )}

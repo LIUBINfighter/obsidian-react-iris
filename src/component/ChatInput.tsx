@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { App, TFile } from 'obsidian';
-import { ImageAttachmentSelector } from './ImageAttachmentSelector';
+import { ImageAttachmentSelector } from './modal/ImageAttachmentSelector';
 
 interface ChatInputProps {
   value: string;

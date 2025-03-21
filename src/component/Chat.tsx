@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { App, Notice } from 'obsidian';
+import { App, Notice, TFile } from 'obsidian';
 import ReactIris from '../main';
 import { saveChatSessionToFile, loadChatSessionFromFile } from '../utils/chatUtils';
-import { AIServiceType } from '../services/AIServiceFactory';
+import { AIServiceFactory } from '../services/AIServiceFactory';
 import { MessageBubble } from './chat-block/MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHeader } from './ChatHeader';
-import { AIClient } from '../services/AIClient';
+import { OllamaModel, OllamaService } from '../services/OllamaService';
 
 export interface Message {
   id: string;
@@ -40,6 +40,8 @@ interface ChatProps {
   plugin?: ReactIris;
 }
 
+type AIServiceType = 'ollama' | 'mock' | 'lmstudio';
+
 export const ChatComponent: React.FC<ChatProps> = ({ 
   app, 
   onAddToInbox, 
@@ -55,30 +57,31 @@ export const ChatComponent: React.FC<ChatProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [serviceType, setServiceType] = useState<AIServiceType>(
-    plugin?.getAIServiceConfig().type || 'langchain'
-  );
+  const [serviceType, setServiceType] = useState<AIServiceType>('ollama');
   const [selectedImage, setSelectedImage] = useState<{base64: string, file: TFile} | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>(
-    plugin?.getAIServiceConfig().modelName || ''
-  );
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [serviceStatus, setServiceStatus] = useState<'ready' | 'testing' | 'offline'>('ready');
+  const [currentRequest, setCurrentRequest] = useState<AbortController | null>(null);
+  const [availableOllamaModels, setAvailableOllamaModels] = useState<OllamaModel[]>([]);
   
   // 引用
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const aiClientRef = useRef<AIClient | null>(null);
   
-  // 初始化AI客户端
   useEffect(() => {
-    aiClientRef.current = new AIClient(app, plugin, sessionId);
-    
-    // 组件卸载时清理
-    return () => {
-      if (aiClientRef.current) {
-        aiClientRef.current.cancelRequest();
-      }
-    };
-  }, [plugin, sessionId]);
+    if (plugin) {
+      console.log('ChatComponent: Plugin settings loaded', plugin.settings);
+      setServiceType(plugin.settings.serviceType as AIServiceType);
+      setSelectedModel(plugin.settings.modelName);
+    } else {
+      console.warn('ChatComponent: Plugin instance is not available.');
+    }
+  }, [plugin]);
+
+  useEffect(() => {
+    if (plugin && plugin.settings.serviceType === 'ollama') {
+      loadOllamaModels();
+    }
+  }, [plugin, plugin?.settings.serviceType]);
   
   // 加载聊天记录
   useEffect(() => {
@@ -98,11 +101,14 @@ export const ChatComponent: React.FC<ChatProps> = ({
   // 加载聊天记录
   const loadChatSession = async () => {
     try {
+      console.log(`ChatComponent: Loading chat session with ID: ${sessionId}`);
       const session = await loadChatSessionFromFile(app, sessionId);
       
       if (session) {
+        console.log(`ChatComponent: Chat session loaded successfully`, session);
         setMessages(session.messages);
       } else {
+        console.log(`ChatComponent: No chat session found with ID: ${sessionId}, creating new session.`);
         // 创建新的会话
         const initialMessage: Message = {
           id: generateId(),
@@ -124,6 +130,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
         };
         
         await saveChatSessionToFile(app, sessionId, newSession);
+        console.log(`ChatComponent: New chat session created and saved`, newSession);
       }
     } catch (error) {
       console.error('加载聊天记录失败:', error);
@@ -137,12 +144,16 @@ export const ChatComponent: React.FC<ChatProps> = ({
   
   // 处理图片选择
   const handleImageSelected = (base64: string, file: TFile) => {
+    console.log('ChatComponent: Image selected', { base64, file });
     setSelectedImage({base64, file});
   };
   
   // 处理发送消息
   const handleSendMessage = async () => {
-    if ((!inputValue.trim() && !selectedImage) || isLoading || isStreaming) return;
+    if ((!inputValue.trim() && !selectedImage) || isLoading || isStreaming || !plugin) {
+      console.log('ChatComponent: handleSendMessage aborted due to invalid state.');
+      return;
+    }
     
     // 用户消息
     const userMessage: Message = {
@@ -158,9 +169,12 @@ export const ChatComponent: React.FC<ChatProps> = ({
       })
     };
     
+    console.log('ChatComponent: User message created', userMessage);
+    
     // 更新消息列表
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
+    console.log('ChatComponent: Messages updated with user message', updatedMessages);
     setInputValue('');
     setSelectedImage(null); // 清除已选择的图片
     setIsLoading(true);
@@ -175,34 +189,71 @@ export const ChatComponent: React.FC<ChatProps> = ({
     };
     
     await saveChatSessionToFile(app, sessionId, currentSession);
+    console.log('ChatComponent: Chat session saved', currentSession);
     
     // 如果AI客户端存在，发送消息
-    if (aiClientRef.current) {
-      try {
-        setIsStreaming(true);
-        const success = await aiClientRef.current.sendMessage(
-          updatedMessages,
-          // 流更新回调
-          (content, isComplete) => {
-            if (isComplete) {
-              setIsLoading(false);
-              setIsStreaming(false);
-            }
-          },
-          // 消息更新回调
-          (newMessages) => {
-            setMessages(newMessages);
-          }
-        );
-        
-        if (!success) {
-          handleError(new Error('发送消息失败'), updatedMessages);
-        }
-      } catch (error) {
-        handleError(error, updatedMessages);
+    try {
+      setIsStreaming(true);
+      console.log('ChatComponent: Starting AI request...');
+      
+      // 获取当前服务类型的配置信息
+      const aiConfig = plugin.settings;
+      console.log('ChatComponent: AI Service Configuration', aiConfig);
+      
+      // 根据服务类型选择对应的配置
+      let baseUrl = aiConfig.baseUrl;
+      if (aiConfig.serviceType === 'lmstudio') {
+        baseUrl = 'http://localhost:1234'; // LM Studio 默认端口
+      } else if (aiConfig.serviceType === 'ollama') {
+        baseUrl = 'http://localhost:11434'; // Ollama 默认端口
       }
-    } else {
-      handleError(new Error('AI客户端未初始化'), updatedMessages);
+      
+      let serviceConfig = {
+        baseUrl: baseUrl,
+        modelName: aiConfig.modelName,
+        systemPrompt: aiConfig.aiService?.systemPrompt,
+        temperature: aiConfig.temperature,
+      };
+      
+      console.log('ChatComponent: Creating AI Service with config', serviceConfig);
+      
+      const aiService = AIServiceFactory.createService(aiConfig.serviceType, serviceConfig);
+      
+      const controller = new AbortController();
+      setCurrentRequest(controller);
+      
+      console.log('ChatComponent: Sending streaming request to AI service', {
+        messages: updatedMessages,
+        systemPrompt: aiConfig.aiService?.systemPrompt,
+        signal: controller.signal
+      });
+      
+      await aiService.sendStreamingRequest(
+        {
+          messages: updatedMessages,
+          systemPrompt: aiConfig.aiService?.systemPrompt,
+          signal: controller.signal
+        },
+        (response) => {
+          console.log('ChatComponent: Received AI stream update', response);
+          const updatedMessagesWithAI = updatedMessages.map(msg => {
+            if (msg.sender === 'assistant' && msg.id === response.messageId) {
+              return { ...msg, content: response.content };
+            }
+            return msg;
+          });
+          setMessages(updatedMessagesWithAI);
+        }
+      );
+      
+      setIsLoading(false);
+      setIsStreaming(false);
+      setCurrentRequest(null);
+      console.log('ChatComponent: AI request completed.');
+    } catch (error: any) {
+      console.error('ChatComponent: AI request failed', error);
+      handleError(error, updatedMessages);
+      setCurrentRequest(null);
     }
   };
   
@@ -242,10 +293,12 @@ export const ChatComponent: React.FC<ChatProps> = ({
   
   // 取消响应
   const handleCancelResponse = () => {
-    if (aiClientRef.current && (isLoading || isStreaming)) {
-      aiClientRef.current.cancelRequest();
+    if (currentRequest) {
+      console.log('ChatComponent: Aborting current AI request.');
+      currentRequest.abort();
       setIsLoading(false);
       setIsStreaming(false);
+      setCurrentRequest(null);
       
       // 添加取消消息
       const cancelMessage: Message = {
@@ -274,45 +327,36 @@ export const ChatComponent: React.FC<ChatProps> = ({
   
   // 切换服务类型
   const toggleService = () => {
-    if (isLoading || isStreaming) return;
+    if (isLoading || isStreaming || !plugin) return;
     
-    // 循环切换服务类型：langchain -> ollama -> lmstudio -> langchain
     let newType: AIServiceType;
     switch (serviceType) {
-      case 'langchain':
-        newType = 'ollama';
-        setServiceStatus('testing');
-        break;
       case 'ollama':
         newType = 'lmstudio';
         setServiceStatus('testing');
         break;
       case 'lmstudio':
-        newType = 'langchain';
+        newType = 'mock';
         setServiceStatus('ready');
         break;
+      case 'mock':
+        newType = 'ollama';
+        setServiceStatus('testing');
+        break;
       default:
-        newType = 'langchain';
-        setServiceStatus('ready');
+        newType = 'ollama';
+        setServiceStatus('testing');
     }
     
-    if (aiClientRef.current && aiClientRef.current.changeServiceType(newType)) {
-      setServiceType(newType);
-      new Notice(`已切换到 ${newType} 服务`);
-      
-      // 如果切换到LM Studio，设置服务状态为测试中，等待连接测试
-      if (newType === 'lmstudio') {
-        setServiceStatus('testing');
-      }
-    } else {
-      new Notice('服务切换失败');
-      setServiceStatus('offline');
-    }
+    plugin.settings.serviceType = newType;
+    plugin.saveSettings();
+    setServiceType(newType);
+    new Notice(`已切换到 ${newType} 服务`);
   };
   
   // 处理服务类型变更
   const handleServiceChange = (type: AIServiceType) => {
-    if (isLoading || isStreaming) {
+    if (isLoading || isStreaming || !plugin) {
       new Notice('正在处理请求，无法切换服务');
       return;
     }
@@ -324,27 +368,23 @@ export const ChatComponent: React.FC<ChatProps> = ({
       setServiceStatus('ready');
     }
     
-    if (aiClientRef.current && aiClientRef.current.changeServiceType(type)) {
-      setServiceType(type);
-      new Notice(`已切换到 ${type} 服务`);
-    } else {
-      new Notice('服务切换失败');
-      setServiceStatus('offline');
-    }
+    plugin.settings.serviceType = type;
+    plugin.saveSettings();
+    setServiceType(type);
+    new Notice(`已切换到 ${type} 服务`);
   };
   
   // 处理模型变更
   const handleModelChange = (modelName: string) => {
-    if (isLoading || isStreaming) {
+    if (isLoading || isStreaming || !plugin) {
       new Notice('正在处理请求，无法切换模型');
       return;
     }
     
-    if (aiClientRef.current && aiClientRef.current.changeModel(modelName)) {
-      new Notice(`已切换到模型: ${modelName}`);
-    } else {
-      new Notice('模型切换失败');
-    }
+    plugin.settings.modelName = modelName;
+    plugin.saveSettings();
+    setSelectedModel(modelName);
+    new Notice(`已切换到模型: ${modelName}`);
   };
   
   // 处理添加或移除收藏
@@ -380,6 +420,22 @@ export const ChatComponent: React.FC<ChatProps> = ({
     }
   };
   
+  const loadOllamaModels = async () => {
+    try {
+      const ollamaService = new OllamaService({
+        baseUrl: plugin?.settings.baseUrl || 'http://localhost:11434',
+        modelName: ''
+      });
+      const isConnected = await ollamaService.testConnection();
+      if (isConnected) {
+        const models = await ollamaService.listModels();
+        setAvailableOllamaModels(models);
+      }
+    } catch (error) {
+      console.error('Failed to load Ollama models:', error);
+    }
+  };
+
   return (
     <div className="chat-container" style={{
       display: 'flex',
@@ -409,6 +465,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
         plugin={plugin}
         serviceStatus={serviceStatus}
         selectedModel={selectedModel}
+        availableOllamaModels={availableOllamaModels}
+        onOllamaModelChange={handleModelChange}
       />
       
       {/* 消息列表 */}

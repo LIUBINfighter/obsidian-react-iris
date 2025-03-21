@@ -20,7 +20,6 @@ const buildOptions = {
     'obsidian', 
     'electron', 
     ...builtins
-    // 移除 LangChain 依赖的 external 标记，让它们被打包进来
   ],
   format: 'cjs',
   target: 'es2018',

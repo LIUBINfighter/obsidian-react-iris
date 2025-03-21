@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: ReactIrisSettings = {
 	baseUrl: 'http://localhost:11434',
 	modelName: 'gemma:2b',
 	temperature: 0.7,
-	serviceType: 'langchain',
+	serviceType: 'ollama',
 	defaultExportFolder: '/inbox' // 默认导出到 inbox 文件夹
 }
 
@@ -174,29 +174,5 @@ export default class ReactIris extends Plugin {
 				leaf.view.onOpen();
 			}
 		}, 100);
-	}
-
-	// 获取AI服务配置
-	getAIServiceConfig() {
-		// 如果没有aiService配置，则创建一个默认配置
-		if (!this.settings.aiService) {
-			this.settings.aiService = {
-				type: this.settings.serviceType || 'langchain',
-				baseUrl: this.settings.baseUrl || 'http://localhost:11434',
-				modelName: this.settings.modelName || 'gemma:2b',
-				temperature: this.settings.temperature || 0.7,
-				maxTokens: 2048
-			};
-		}
-		return this.settings.aiService;
-	}
-	
-	// 更新AI服务配置
-	async updateAIServiceConfig(config: any) {
-		this.settings.aiService = {
-			...this.settings.aiService,
-			...config
-		};
-		await this.saveSettings();
 	}
 }
