@@ -156,13 +156,6 @@ export class LMStudioService implements AIService {
           ]
         });
       }
-      // 普通文本消息
-      else {
-        formattedMessages.push({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        });
-      }
     });
     
     return formattedMessages;
