@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { App, Notice } from 'obsidian';
 import ReactIris from '../main';
-import { exportMessagesToMarkdown } from '../utils/exportUtils';
+import { exportMessagesToMarkdown, generateSingleMessageMarkdown } from '../utils/exportUtils';
 import { FavoriteItem } from '../utils/favoriteUtils';
 import { Header } from './common/Header';
+import { ExportModal, ExportOptions } from './modal/ExportModal';
 
 interface InboxProps {
   messages: FavoriteItem[];
@@ -53,21 +54,55 @@ export const InboxComponent: React.FC<InboxProps> = ({
       // 获取选中的消息
       const messagesToExport = messages.filter(msg => selectedMessages.includes(msg.id));
       
-      // 使用工具函数导出消息
-      const result = await exportMessagesToMarkdown(
-        app,
-        messagesToExport,
-        `导出的收藏 ${new Date().toLocaleString().replace(/[\/\\:]/g, '-')}.md`
-      );
-      
-      if (result.success) {
-        new Notice(`成功导出 ${selectedMessages.length} 条消息`);
-        // 清除选择
-        setSelectedMessages([]);
-      } else {
-        new Notice('导出消息失败: ' + result.error);
+      // 生成默认标题
+      let defaultTitle = messagesToExport.length === 1 
+        ? '单条AI回复' 
+        : `${messagesToExport.length}条AI回复`;
+        
+      // 如果是单条消息，使用内容前20个字符作为标题预览
+      if (messagesToExport.length === 1) {
+        const previewText = messagesToExport[0].content
+          .substring(0, 20)
+          .replace(/[\/\\:*?"<>|]/g, '-')
+          .trim();
+        
+        if (previewText) {
+          defaultTitle = `AI回复: ${previewText}${previewText.length >= 20 ? '...' : ''}`;
+        }
       }
       
+      // 显示导出模态框
+      const modal = new ExportModal(app, {
+        app,
+        plugin: plugin,
+        messages: messagesToExport,
+        onClose: () => {
+          // 关闭时不执行任何操作
+        },
+        onExport: async (options: ExportOptions) => {
+          try {
+            // 执行导出
+            const result = await exportMessagesToMarkdown(
+              app, 
+              messagesToExport, 
+              options
+            );
+            
+            if (result.success) {
+              new Notice(`成功导出 ${messagesToExport.length} 条消息`);
+              setSelectedMessages([]);
+            } else {
+              new Notice('导出消息失败: ' + result.error);
+            }
+          } catch (error) {
+            console.error('导出失败:', error);
+            new Notice('导出失败: ' + error.message);
+          }
+        },
+        defaultTitle
+      });
+      
+      modal.open();
     } catch (error) {
       console.error('导出消息失败:', error);
       new Notice('导出消息失败: ' + error.message);
@@ -82,27 +117,84 @@ export const InboxComponent: React.FC<InboxProps> = ({
     }
     
     try {
-      // 使用工具函数导出所有消息
-      const result = await exportMessagesToMarkdown(
+      // 显示导出模态框
+      const modal = new ExportModal(app, {
         app,
-        messages,
-        `所有收藏 ${new Date().toLocaleString().replace(/[\/\\:]/g, '-')}.md`
-      );
+        plugin: plugin,
+        messages: messages,
+        onClose: () => {
+          // 关闭时不执行任何操作
+        },
+        onExport: async (options: ExportOptions) => {
+          // 执行导出
+          const result = await exportMessagesToMarkdown(app, messages, options);
+          
+          if (result.success) {
+            new Notice(`成功导出所有 ${messages.length} 条消息`);
+            setSelectedMessages([]);
+          } else {
+            new Notice('导出消息失败: ' + result.error);
+          }
+        },
+        defaultTitle: `所有AI收藏 (${messages.length}条)`
+      });
       
-      if (result.success) {
-        new Notice(`成功导出所有 ${messages.length} 条消息`);
-        // 清除选择
-        setSelectedMessages([]);
-      } else {
-        new Notice('导出消息失败: ' + result.error);
-      }
-      
+      modal.open();
     } catch (error) {
       console.error('导出所有消息失败:', error);
       new Notice('导出消息失败: ' + error.message);
     }
   };
   
+  // 导出单条消息
+  const exportSingleMessage = async (message: FavoriteItem): Promise<ExportResult> => {
+    try {
+      // 显示导出模态框而不是直接导出
+      const titlePreview = message.content
+        .substring(0, 20)
+        .replace(/[\/\\:*?"<>|]/g, '-')
+        .trim();
+      
+      const defaultTitle = `AI回复: ${titlePreview}${titlePreview.length >= 20 ? '...' : ''}`;
+      
+      return new Promise((resolve) => {
+        const modal = new ExportModal(app, {
+          app,
+          plugin: plugin,
+          messages: [message],
+          onClose: () => {
+            resolve({
+              success: false,
+              error: '用户取消操作'
+            });
+          },
+          onExport: async (options: ExportOptions) => {
+            try {
+              // 创建导出
+              const result = await exportMessagesToMarkdown(app, [message], options);
+              resolve(result);
+            } catch (error) {
+              console.error('导出单条消息失败:', error);
+              resolve({
+                success: false,
+                error: error.message || '导出失败'
+              });
+            }
+          },
+          defaultTitle
+        });
+        
+        modal.open();
+      });
+    } catch (error) {
+      console.error('导出单条消息失败:', error);
+      return {
+        success: false,
+        error: error.message || '导出失败'
+      };
+    }
+  };
+
   // 构建Header组件的右侧操作区域
   const rightActions = (
     <div style={{ display: 'flex', gap: '8px' }}>
