@@ -251,7 +251,16 @@ export const ChatComponent: React.FC<ChatProps> = ({
           setMessages((prevMessages) => {
             return prevMessages.map(msg => {
               if (msg.sender === 'assistant' && msg.id === aiMessageId) {
-                return { ...msg, content: response.content };
+                console.log('AI响应数据:', { 
+                  responseTime: response.responseTime,
+                  tokenCount: response.tokenCount 
+                });
+                return { 
+                  ...msg, 
+                  content: response.content,
+                  responsetime: response.responseTime,
+                  tokencount: response.tokenCount
+                };
               }
               return msg;
             });
