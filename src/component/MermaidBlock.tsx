@@ -98,15 +98,16 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ segment, app, onAddT
   return (
     <div className="mermaid-block-container" style={{
       marginBottom: '12px',
-      backgroundColor: 'var(--background-primary-alt)',
+      backgroundColor: 'var(--background-secondary)',
       borderRadius: '8px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      border: '1px solid var(--background-modifier-border)'
     }}>
       <div 
         className="mermaid-block-header" 
         style={{
           padding: '8px 12px',
-          backgroundColor: 'var(--background-modifier-hover)',
+          backgroundColor: 'var(--background-secondary-alt)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'

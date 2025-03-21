@@ -309,7 +309,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
       minHeight: '500px',
       overflow: 'hidden',
       backgroundColor: 'var(--background-primary)',
-      borderRadius: '5px',
+      borderRadius: '8px',
       border: '1px solid var(--background-modifier-border)'
     }}>
       {/* 聊天头部 */}
@@ -332,7 +332,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
 	  padding: '16px',
 	  display: 'flex',
 	  flexDirection: 'column',
-	  width: '100%'
+	  width: '100%',
+	  backgroundColor: 'var(--background-primary)'
 	}}>
 	  {messages.map(message => (
 		<MessageBubble 

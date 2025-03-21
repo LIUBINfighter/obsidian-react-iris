@@ -14,14 +14,15 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ segment, onAddToIn
       marginBottom: '12px',
       backgroundColor: 'var(--background-secondary)',
       borderRadius: '8px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      border: '1px solid var(--background-modifier-border)'
     }}>
       <div 
         className="thinking-header" 
         onClick={() => setIsExpanded(!isExpanded)}
         style={{
           padding: '8px 12px',
-          backgroundColor: 'var(--background-modifier-hover)',
+          backgroundColor: 'var(--background-secondary-alt)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -69,7 +70,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ segment, onAddToIn
             padding: '12px',
             maxHeight: '400px',
             overflowY: 'auto',
-            backgroundColor: 'var(--background-primary-alt)',
+            backgroundColor: 'var(--background-primary)',
             color: 'var(--text-normal)',
             whiteSpace: 'pre-wrap',
             fontSize: '14px',

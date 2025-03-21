@@ -3,6 +3,7 @@ import { App, Notice } from 'obsidian';
 import ReactIris from '../main';
 import { exportMessagesToMarkdown } from '../utils/exportUtils';
 import { FavoriteItem } from '../utils/favoriteUtils';
+import { Header } from './common/Header';
 
 interface InboxProps {
   messages: FavoriteItem[];
@@ -102,6 +103,42 @@ export const InboxComponent: React.FC<InboxProps> = ({
     }
   };
   
+  // 构建Header组件的右侧操作区域
+  const rightActions = (
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button
+        onClick={exportSelectedMessages}
+        disabled={selectedMessages.length === 0}
+        style={{
+          padding: '4px 8px',
+          backgroundColor: selectedMessages.length ? 'var(--interactive-accent)' : 'var(--background-modifier-border)',
+          color: selectedMessages.length ? 'var(--text-on-accent)' : 'var(--text-muted)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: selectedMessages.length ? 'pointer' : 'not-allowed',
+          fontSize: '12px'
+        }}
+      >
+        导出选中 ({selectedMessages.length})
+      </button>
+      <button
+        onClick={exportAllMessages}
+        disabled={messages.length === 0}
+        style={{
+          padding: '4px 8px',
+          backgroundColor: messages.length ? 'var(--interactive-success)' : 'var(--background-modifier-border)',
+          color: messages.length ? 'white' : 'var(--text-muted)',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: messages.length ? 'pointer' : 'not-allowed',
+          fontSize: '12px'
+        }}
+      >
+        导出全部
+      </button>
+    </div>
+  );
+  
   return (
     <div className="inbox-container" style={{
       display: 'flex',
@@ -109,48 +146,12 @@ export const InboxComponent: React.FC<InboxProps> = ({
       height: '100%',
       overflow: 'hidden'
     }}>
-      <div className="inbox-header" style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--background-modifier-border)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h4 style={{ margin: 0 }}>收藏箱 ({messages.length})</h4>
-        <div>
-          <button
-            onClick={exportSelectedMessages}
-            disabled={selectedMessages.length === 0}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: selectedMessages.length ? 'var(--interactive-accent)' : 'var(--background-modifier-border)',
-              color: selectedMessages.length ? 'var(--text-on-accent)' : 'var(--text-muted)',
-              border: 'none',
-              borderRadius: '4px',
-              marginRight: '8px',
-              cursor: selectedMessages.length ? 'pointer' : 'not-allowed',
-              fontSize: '12px'
-            }}
-          >
-            导出选中 ({selectedMessages.length})
-          </button>
-          <button
-            onClick={exportAllMessages}
-            disabled={messages.length === 0}
-            style={{
-              padding: '4px 8px',
-              backgroundColor: messages.length ? 'var(--interactive-success)' : 'var(--background-modifier-border)',
-              color: messages.length ? 'white' : 'var(--text-muted)',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: messages.length ? 'pointer' : 'not-allowed',
-              fontSize: '12px'
-            }}
-          >
-            导出全部
-          </button>
-        </div>
-      </div>
+      {/* 使用通用Header组件替换原有的inbox-header */}
+      <Header
+        title={`收藏箱 (${messages.length})`}
+        rightActions={rightActions}
+        className="inbox-header"
+      />
       
       <div className="inbox-messages" style={{
         flex: 1,

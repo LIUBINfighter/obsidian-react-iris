@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import { setIcon } from 'obsidian';
 import { AIServiceType } from '../services/AIServiceFactory';
+import { Header, createIconButtonStyle } from './common/Header';
 
 interface ChatHeaderProps {
   title: string;
@@ -27,81 +29,104 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isLoading,
   isStreaming
 }) => {
-  return (
-    <div className="chat-header" style={{
-      padding: '12px 16px',
-      borderBottom: '1px solid var(--background-modifier-border)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
+  const leftSidebarIconRef = useRef<HTMLDivElement>(null);
+  const rightSidebarIconRef = useRef<HTMLDivElement>(null);
+
+  // 使用 useEffect 设置图标
+  useEffect(() => {
+    if (leftSidebarIconRef.current) {
+      setIcon(leftSidebarIconRef.current, 'sidebar-left');
+    }
+    if (rightSidebarIconRef.current) {
+      setIcon(rightSidebarIconRef.current, 'sidebar-right');
+    }
+  }, []);
+
+  // 左侧操作按钮
+  const leftActions = (
+    <button
+      onClick={toggleLeftSidebar}
+      style={createIconButtonStyle(leftSidebarVisible)}
+      title="切换左侧边栏"
+    >
+      <div 
+        ref={leftSidebarIconRef} 
+        style={{ width: '16px', height: '16px' }}
+      />
+    </button>
+  );
+
+  // 中间状态显示
+  const centerContent = (
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      fontSize: '12px', 
+      color: isLoading || isStreaming ? 'var(--text-accent)' : 'var(--text-muted)',
+      gap: '5px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <button 
-          onClick={toggleLeftSidebar}
-          aria-label={leftSidebarVisible ? '隐藏左侧边栏' : '显示左侧边栏'}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-normal)',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            marginRight: '8px',
-            width: '28px',
-            height: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px'
-          }}
-          className={leftSidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
-        >
-          {leftSidebarVisible ? '◀' : '▶'}
-        </button>
-        <h3 style={{ margin: 0 }}>{title}</h3>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span style={{ margin: '0 10px', fontSize: '12px', color: 'var(--text-muted)' }}>
-          服务: {serviceType}
-        </span>
-        <button 
-          onClick={toggleService}
-          disabled={isLoading || isStreaming}
-          style={{
-            fontSize: '12px',
-            padding: '2px 6px',
-            marginLeft: '4px',
-            backgroundColor: 'var(--background-modifier-border)',
-            border: 'none',
-            borderRadius: '4px',
-            color: 'var(--text-normal)',
-            cursor: 'pointer'
-          }}
-        >
-          切换
-        </button>
-        <button 
-          onClick={toggleSidebar}
-          aria-label={sidebarVisible ? '隐藏右侧边栏' : '显示右侧边栏'}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-normal)',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            width: '28px',
-            height: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px'
-          }}
-          className={sidebarVisible ? 'sidebar-button active' : 'sidebar-button'}
-        >
-          {sidebarVisible ? '▶' : '◀'}
-        </button>
-      </div>
+      {isLoading || isStreaming ? (
+        <>
+          <span className="loading-spinner" style={{
+            display: 'inline-block',
+            width: '10px',
+            height: '10px',
+            border: '2px solid var(--text-accent)',
+            borderBottomColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></span>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <span>{isStreaming ? '接收中...' : '处理中...'}</span>
+        </>
+      ) : (
+        <>
+          <span className="status-dot" style={{
+            display: 'inline-block',
+            width: '8px',
+            height: '8px',
+            backgroundColor: serviceType === 'langchain' ? 'var(--text-success)' : 'var(--text-warning)',
+            borderRadius: '50%',
+            marginRight: '4px'
+          }}></span>
+          <span 
+            onClick={toggleService} 
+            style={{ cursor: 'pointer' }}
+            title="点击切换服务"
+          >
+            {serviceType === 'langchain' ? 'ChatGPT 模式' : 'Ollama 模式'}
+          </span>
+        </>
+      )}
     </div>
+  );
+
+  // 右侧操作按钮
+  const rightActions = (
+    <button
+      onClick={toggleSidebar}
+      style={createIconButtonStyle(sidebarVisible)}
+      title="切换右侧边栏"
+    >
+      <div 
+        ref={rightSidebarIconRef} 
+        style={{ width: '16px', height: '16px' }}
+      />
+    </button>
+  );
+
+  return (
+    <Header
+      title={title}
+      leftActions={leftActions}
+      rightActions={rightActions}
+      centerContent={centerContent}
+      className="chat-header"
+    />
   );
 };
