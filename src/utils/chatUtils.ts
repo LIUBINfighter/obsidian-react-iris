@@ -70,17 +70,29 @@ export function saveChatSessionToFileWithDebounce(
 ): void {
   // 对每个sessionId创建唯一的防抖实例
   if (!debouncedSaveInstances.has(sessionId)) {
-    debouncedSaveInstances.set(
-      sessionId, 
-      debounce(async (app: App, id: string, data: ChatSession) => {
-        await saveChatSessionToFile(app, id, data);
-      }, debounceMs)
-    );
+    const debounceFn = debounce(async (app: App, id: string, data: ChatSession) => {
+      await saveChatSessionToFile(app, id, data);
+    }, debounceMs);
+    
+    // 添加取消方法
+    debounceFn.cancel = () => debouncedSaveInstances.delete(sessionId);
+    debouncedSaveInstances.set(sessionId, debounceFn);
   }
   
   // 使用防抖函数保存
   const debouncedSave = debouncedSaveInstances.get(sessionId)!;
   debouncedSave(app, sessionId, session);
+}
+
+/**
+ * 立即执行并清除防抖保存
+ */
+export function flushDebouncedSave(sessionId: string): void {
+  const debouncedSave = debouncedSaveInstances.get(sessionId);
+  if (debouncedSave && typeof debouncedSave.flush === 'function') {
+    debouncedSave.flush();
+    debouncedSaveInstances.delete(sessionId);
+  }
 }
 
 /**
@@ -127,7 +139,14 @@ export async function loadChatSessionFromFile(app: App, sessionId: string): Prom
     
     if (exists) {
       const data = await app.vault.adapter.read(chatFilePath);
-      return JSON.parse(data) as ChatSession;
+      const session = JSON.parse(data) as ChatSession;
+      
+      // 消息数组完整性校验
+      if (!session.messages || !Array.isArray(session.messages)) {
+        session.messages = [];
+      }
+      
+      return session;
     }
     
     return null;

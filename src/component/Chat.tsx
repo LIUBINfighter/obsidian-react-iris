@@ -12,7 +12,7 @@ export interface Message {
   id: string;
   content: string;
   timestamp: number;
-  role: 'user' | 'assistant';
+  sender: 'user' | 'assistant';
   favorite: boolean;
   responseTime?: number; // AI响应时间（毫秒）
   tokencount?: number;   // 消息的token数量

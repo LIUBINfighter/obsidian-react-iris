@@ -21,6 +21,8 @@ export interface AIRequestOptions {
 export interface AIResponseStream {
   content: string;
   isComplete: boolean;
+  responseTime: number;
+  tokenCount: number;
 }
 
 /**
@@ -192,7 +194,12 @@ export class OllamaService implements AIService {
       
       const emitComplete = () => {
         if (!isCompleteEmitted) {
-          onUpdate({ content, isComplete: true });
+          onUpdate({ 
+        content,
+        isComplete: true,
+        responseTime: Date.now() - startTime,
+        tokenCount: estimateTokenCount(content)
+      });
           isCompleteEmitted = true;
         }
       };
@@ -213,8 +220,15 @@ export class OllamaService implements AIService {
             const data = JSON.parse(line);
             
             if (data.message?.content) {
+              const responseTime = Date.now() - startTime;
+              const tokenCount = estimateTokenCount(content + data.message.content);
               content += data.message.content;
-              onUpdate({ content, isComplete: false });
+              onUpdate({ 
+                content,
+                isComplete: false,
+                responseTime,
+                tokenCount 
+              });
             }
             
             if (data.done === true) {
