@@ -78,9 +78,57 @@ export class AIClient {
         }
       );
       console.log(`AI服务已切换到: ${type}`);
+      
+      // 更新插件配置
+      if (this.plugin) {
+        const updatedConfig = {
+          ...aiConfig,
+          type
+        };
+        this.plugin.updateAIServiceConfig(updatedConfig);
+      }
+      
       return true;
     } catch (error) {
       console.error('切换AI服务失败:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * 更改模型
+   * @param modelName 模型名称
+   * @returns 是否成功
+   */
+  public changeModel(modelName: string): boolean {
+    if (!this.plugin || !this.service) return false;
+    
+    try {
+      const aiConfig = this.plugin.getAIServiceConfig();
+      
+      // 创建新的服务实例，使用新的模型名称
+      this.service = AIServiceFactory.createService(
+        aiConfig.type,
+        {
+          ...aiConfig,
+          modelName
+        }
+      );
+      
+      console.log(`模型已切换到: ${modelName}`);
+      
+      // 更新插件配置
+      if (this.plugin) {
+        const updatedConfig = {
+          ...aiConfig,
+          modelName
+        };
+        this.plugin.updateAIServiceConfig(updatedConfig);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('切换模型失败:', error);
       return false;
     }
   }

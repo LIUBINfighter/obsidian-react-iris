@@ -1,7 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { App, TFile } from 'obsidian';
+import { LMStudioService, LMStudioModel } from '../services/LMStudioService';
 import { setIcon } from 'obsidian';
 import { AIServiceType } from '../services/AIServiceFactory';
 import { Header, createIconButtonStyle } from './common/Header';
+import ReactIris from '../main';
 
 interface ChatHeaderProps {
   title: string;
@@ -11,26 +14,104 @@ interface ChatHeaderProps {
   toggleLeftSidebar: () => void;
   toggleSidebar: () => void;
   toggleService: () => void;
+  onServiceChange?: (type: AIServiceType) => void;
+  onModelChange?: (modelName: string) => void;
   isLoading: boolean;
   isStreaming: boolean;
+  app?: App;
+  plugin?: ReactIris;
+  serviceStatus?: 'ready' | 'testing' | 'offline';
+  selectedModel?: string;
 }
 
 /**
  * 聊天头部组件 - 显示聊天标题和控制按钮
  */
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
-  title,
+  title = '聊天助手',
   serviceType,
   leftSidebarVisible,
   sidebarVisible,
   toggleLeftSidebar,
   toggleSidebar,
   toggleService,
+  onServiceChange,
+  onModelChange,
   isLoading,
-  isStreaming
+  isStreaming,
+  app,
+  plugin,
+  serviceStatus = 'ready',
+  selectedModel = ''
 }) => {
   const leftSidebarIconRef = useRef<HTMLDivElement>(null);
   const rightSidebarIconRef = useRef<HTMLDivElement>(null);
+  const [availableModels, setAvailableModels] = useState<LMStudioModel[]>([]);
+  const [internalSelectedModel, setInternalSelectedModel] = useState<string>(selectedModel || '');
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [lmStudioConnected, setLmStudioConnected] = useState(false);
+  
+  // 加载LM Studio模型列表
+  useEffect(() => {
+    if (serviceType === 'lmstudio') {
+      loadLMStudioModels();
+    }
+  }, [serviceType]);
+  
+  // 加载LM Studio模型
+  const loadLMStudioModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const lmStudioService = new LMStudioService({
+        baseUrl: 'http://127.0.0.1:1234',
+        modelName: ''
+      });
+      
+      // 测试连接
+      const isConnected = await lmStudioService.testConnection();
+      setLmStudioConnected(isConnected);
+      
+      if (isConnected) {
+        // 获取模型列表
+        const models = await lmStudioService.listModels();
+        setAvailableModels(models);
+        
+        // 如果有模型且没有选择过模型，自动选择第一个
+        if (models.length > 0 && !internalSelectedModel) {
+          setInternalSelectedModel(models[0].id);
+          if (onModelChange) {
+            onModelChange(models[0].id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载LM Studio模型失败:', error);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+  
+  // 处理服务类型变更
+  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value as AIServiceType;
+    if (onServiceChange) {
+      onServiceChange(newType);
+    }
+    
+    // 如果切换到LM Studio，尝试加载模型
+    if (newType === 'lmstudio') {
+      loadLMStudioModels();
+    }
+  };
+  
+  // 处理模型变更
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = e.target.value;
+    setInternalSelectedModel(newModel);
+    if (onModelChange) {
+      onModelChange(newModel);
+    }
+  };
 
   // 使用 useEffect 设置图标
   useEffect(() => {
@@ -63,7 +144,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       alignItems: 'center', 
       fontSize: '12px', 
       color: isLoading || isStreaming ? 'var(--text-accent)' : 'var(--text-muted)',
-      gap: '5px'
+      gap: '8px'
     }}>
       {isLoading || isStreaming ? (
         <>
@@ -86,21 +167,68 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </>
       ) : (
         <>
+          {/* 服务类型选择 */}
+          <select 
+            value={serviceType}
+            onChange={handleServiceChange}
+            style={{
+              padding: '2px 4px',
+              backgroundColor: 'var(--background-primary)',
+              color: 'var(--text-normal)',
+              border: '1px solid var(--background-modifier-border)',
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}
+          >
+            <option value="langchain">LangChain</option>
+            <option value="ollama">Ollama</option>
+            <option value="lmstudio">LM Studio</option>
+          </select>
+          
+          {/* LM Studio模型选择 */}
+          {serviceType === 'lmstudio' && (
+            <select
+              value={internalSelectedModel}
+              onChange={handleModelChange}
+              disabled={!lmStudioConnected || isLoadingModels}
+              style={{
+                padding: '2px 4px',
+                backgroundColor: 'var(--background-primary)',
+                color: 'var(--text-normal)',
+                border: '1px solid var(--background-modifier-border)',
+                borderRadius: '4px',
+                fontSize: '12px',
+                maxWidth: '120px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {isLoadingModels ? (
+                <option value="">加载中...</option>
+              ) : !lmStudioConnected ? (
+                <option value="">未连接</option>
+              ) : availableModels.length === 0 ? (
+                <option value="">无可用模型</option>
+              ) : (
+                availableModels.map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.id}
+                  </option>
+                ))
+              )}
+            </select>
+          )}
+          
           <span className="status-dot" style={{
             display: 'inline-block',
             width: '8px',
             height: '8px',
-            backgroundColor: serviceType === 'langchain' ? 'var(--text-success)' : 'var(--text-warning)',
+            backgroundColor: serviceStatus === 'ready' ? 'var(--text-success)' : 
+                           serviceStatus === 'testing' ? 'var(--text-warning)' : 
+                           'var(--text-error)',
             borderRadius: '50%',
-            marginRight: '4px'
+            transition: 'background-color 0.3s ease'
           }}></span>
-          <span 
-            onClick={toggleService} 
-            style={{ cursor: 'pointer' }}
-            title="点击切换服务"
-          >
-            {serviceType === 'langchain' ? 'langchain' : 'Ollama'}
-          </span>
         </>
       )}
     </div>

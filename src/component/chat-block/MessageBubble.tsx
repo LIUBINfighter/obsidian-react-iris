@@ -99,6 +99,32 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
                 display: 'inline-block'
               }}>
                 {message.content}
+                
+                {/* 显示图片（如果有） */}
+                {message.imageData && (
+                  <div style={{ marginTop: '10px' }}>
+                    <img 
+                      src={message.imageData} 
+                      alt="Attached image" 
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '300px',
+                        borderRadius: '4px',
+                        objectFit: 'contain'
+                      }} 
+                    />
+                    {message.imagePath && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        marginTop: '4px', 
+                        color: 'var(--text-on-accent-faint)',
+                        opacity: 0.8
+                      }}>
+                        图片: {message.imagePath.split('/').pop()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

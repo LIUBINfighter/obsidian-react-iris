@@ -13,6 +13,17 @@ interface ReactIrisSettings {
 	temperature: number;
 	serviceType: AIServiceType;
 	defaultExportFolder: string; // 添加默认导出文件夹设置
+	aiService?: {
+		type: AIServiceType;
+		baseUrl: string;
+		modelName: string;
+		systemPrompt?: string;
+		temperature?: number;
+		maxTokens?: number;
+	};
+	// 多模态支持设置
+	multimodalEnabled?: boolean;
+	multimodalModel?: string;
 }
 
 const DEFAULT_SETTINGS: ReactIrisSettings = {
@@ -167,6 +178,25 @@ export default class ReactIris extends Plugin {
 
 	// 获取AI服务配置
 	getAIServiceConfig() {
+		// 如果没有aiService配置，则创建一个默认配置
+		if (!this.settings.aiService) {
+			this.settings.aiService = {
+				type: this.settings.serviceType || 'langchain',
+				baseUrl: this.settings.baseUrl || 'http://localhost:11434',
+				modelName: this.settings.modelName || 'gemma:2b',
+				temperature: this.settings.temperature || 0.7,
+				maxTokens: 2048
+			};
+		}
 		return this.settings.aiService;
+	}
+	
+	// 更新AI服务配置
+	async updateAIServiceConfig(config: any) {
+		this.settings.aiService = {
+			...this.settings.aiService,
+			...config
+		};
+		await this.saveSettings();
 	}
 }

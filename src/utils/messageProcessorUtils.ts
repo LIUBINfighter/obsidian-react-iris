@@ -7,7 +7,8 @@ export enum MessageSegmentType {
   TEXT = 'text',           // 普通文本
   THINKING = 'thinking',   // 思考过程
   CODE = 'code',           // 代码块
-  MERMAID = 'mermaid'      // Mermaid图表
+  MERMAID = 'mermaid',     // Mermaid图表
+  IMAGE = 'image'          // 图片内容
 }
 
 /**
@@ -36,6 +37,24 @@ export function generateId(): string {
 export function parseMessageContent(message: Message): MessageSegment[] {
   // 如果是用户消息，则不做特殊处理
   if (message.sender === 'user') {
+    // 如果用户消息包含图片，添加图片段落
+    if (message.imageData) {
+      return [
+        {
+          id: generateId(),
+          type: MessageSegmentType.TEXT,
+          content: message.content,
+          originalMessage: message
+        },
+        {
+          id: generateId(),
+          type: MessageSegmentType.IMAGE,
+          content: message.content || '图片附件',
+          originalMessage: message
+        }
+      ];
+    }
+    
     return [{
       id: generateId(),
       type: MessageSegmentType.TEXT,
@@ -176,6 +195,11 @@ export function segmentToFavoriteMessage(segment: MessageSegment): Message {
     }),
     ...(segment.type === MessageSegmentType.THINKING && {
       content: `<think>${segment.content}</think>`
+    }),
+    ...(segment.type === MessageSegmentType.IMAGE && {
+      content: segment.content,
+      imageData: segment.originalMessage.imageData,
+      imagePath: segment.originalMessage.imagePath
     })
   };
 }

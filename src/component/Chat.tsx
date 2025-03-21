@@ -16,6 +16,9 @@ export interface Message {
   favorite: boolean;
   responsetime?: number; // AI响应时间（毫秒）
   tokencount?: number;   // 消息的token数量
+  imageData?: string;    // 图片的base64数据
+  imagePath?: string;    // 图片在仓库中的路径
+  isContext?: boolean;   // 是否为上下文消息
 }
 
 export interface ChatSession {
@@ -55,6 +58,11 @@ export const ChatComponent: React.FC<ChatProps> = ({
   const [serviceType, setServiceType] = useState<AIServiceType>(
     plugin?.getAIServiceConfig().type || 'langchain'
   );
+  const [selectedImage, setSelectedImage] = useState<{base64: string, file: TFile} | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>(
+    plugin?.getAIServiceConfig().modelName || ''
+  );
+  const [serviceStatus, setServiceStatus] = useState<'ready' | 'testing' | 'offline'>('ready');
   
   // 引用
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -127,9 +135,14 @@ export const ChatComponent: React.FC<ChatProps> = ({
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   };
   
+  // 处理图片选择
+  const handleImageSelected = (base64: string, file: TFile) => {
+    setSelectedImage({base64, file});
+  };
+  
   // 处理发送消息
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || isStreaming) return;
+    if ((!inputValue.trim() && !selectedImage) || isLoading || isStreaming) return;
     
     // 用户消息
     const userMessage: Message = {
@@ -137,13 +150,19 @@ export const ChatComponent: React.FC<ChatProps> = ({
       content: inputValue,
       timestamp: Date.now(),
       sender: 'user',
-      favorite: false
+      favorite: false,
+      // 如果有选择图片，添加图片数据
+      ...(selectedImage && {
+        imageData: selectedImage.base64,
+        imagePath: selectedImage.file.path
+      })
     };
     
     // 更新消息列表
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputValue('');
+    setSelectedImage(null); // 清除已选择的图片
     setIsLoading(true);
     
     // 保存聊天记录
@@ -257,13 +276,74 @@ export const ChatComponent: React.FC<ChatProps> = ({
   const toggleService = () => {
     if (isLoading || isStreaming) return;
     
-    const newType = serviceType === 'langchain' ? 'ollama' : 'langchain';
+    // 循环切换服务类型：langchain -> ollama -> lmstudio -> langchain
+    let newType: AIServiceType;
+    switch (serviceType) {
+      case 'langchain':
+        newType = 'ollama';
+        setServiceStatus('testing');
+        break;
+      case 'ollama':
+        newType = 'lmstudio';
+        setServiceStatus('testing');
+        break;
+      case 'lmstudio':
+        newType = 'langchain';
+        setServiceStatus('ready');
+        break;
+      default:
+        newType = 'langchain';
+        setServiceStatus('ready');
+    }
     
     if (aiClientRef.current && aiClientRef.current.changeServiceType(newType)) {
       setServiceType(newType);
       new Notice(`已切换到 ${newType} 服务`);
+      
+      // 如果切换到LM Studio，设置服务状态为测试中，等待连接测试
+      if (newType === 'lmstudio') {
+        setServiceStatus('testing');
+      }
     } else {
       new Notice('服务切换失败');
+      setServiceStatus('offline');
+    }
+  };
+  
+  // 处理服务类型变更
+  const handleServiceChange = (type: AIServiceType) => {
+    if (isLoading || isStreaming) {
+      new Notice('正在处理请求，无法切换服务');
+      return;
+    }
+    
+    // 设置服务状态为测试中
+    if (type === 'lmstudio' || type === 'ollama') {
+      setServiceStatus('testing');
+    } else {
+      setServiceStatus('ready');
+    }
+    
+    if (aiClientRef.current && aiClientRef.current.changeServiceType(type)) {
+      setServiceType(type);
+      new Notice(`已切换到 ${type} 服务`);
+    } else {
+      new Notice('服务切换失败');
+      setServiceStatus('offline');
+    }
+  };
+  
+  // 处理模型变更
+  const handleModelChange = (modelName: string) => {
+    if (isLoading || isStreaming) {
+      new Notice('正在处理请求，无法切换模型');
+      return;
+    }
+    
+    if (aiClientRef.current && aiClientRef.current.changeModel(modelName)) {
+      new Notice(`已切换到模型: ${modelName}`);
+    } else {
+      new Notice('模型切换失败');
     }
   };
   
@@ -321,8 +401,14 @@ export const ChatComponent: React.FC<ChatProps> = ({
         toggleLeftSidebar={toggleLeftSidebar}
         toggleSidebar={toggleSidebar}
         toggleService={toggleService}
+        onServiceChange={handleServiceChange}
+        onModelChange={handleModelChange}
         isLoading={isLoading}
         isStreaming={isStreaming}
+        app={app}
+        plugin={plugin}
+        serviceStatus={serviceStatus}
+        selectedModel={selectedModel}
       />
       
       {/* 消息列表 */}
@@ -354,6 +440,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
         onCancel={handleCancelResponse}
         isLoading={isLoading}
         isStreaming={isStreaming}
+        app={app}
+        onImageSelected={handleImageSelected}
       />
     </div>
   );

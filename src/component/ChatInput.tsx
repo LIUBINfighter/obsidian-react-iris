@@ -1,4 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { App, TFile } from 'obsidian';
+import { ImageAttachmentSelector } from './ImageAttachmentSelector';
 
 interface ChatInputProps {
   value: string;
@@ -7,6 +9,8 @@ interface ChatInputProps {
   onCancel: () => void;
   isLoading: boolean;
   isStreaming: boolean;
+  app: App;
+  onImageSelected?: (base64: string, file: TFile) => void;
 }
 
 /**
@@ -18,11 +22,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   onCancel,
   isLoading,
-  isStreaming
+  isStreaming,
+  app,
+  onImageSelected
 }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isDisabled = isLoading || isStreaming;
   const isEmpty = !value.trim();
+  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{base64: string, file: TFile} | null>(null);
   
   // 自动聚焦输入框
   useEffect(() => {
@@ -40,6 +48,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }
     }
   };
+
+  // 处理图片选择
+  const handleImageSelect = (base64: string, file: TFile) => {
+    setSelectedImage({base64, file});
+    if (onImageSelected) {
+      onImageSelected(base64, file);
+    }
+  };
+
+  // 处理图片删除
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+  };
+
+  // 打开图片选择器
+  const openImageSelector = () => {
+    setIsImageSelectorOpen(true);
+  };
   
   return (
     <div className="chat-input-area" style={{
@@ -48,6 +74,49 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       display: 'flex',
       flexDirection: 'column'
     }}>
+      {/* 图片预览区域 */}
+      {selectedImage && (
+        <div style={{
+          marginBottom: '10px',
+          padding: '8px',
+          backgroundColor: 'var(--background-secondary)',
+          borderRadius: '4px',
+          position: 'relative'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '5px'
+          }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+              已选择图片: {selectedImage.file.name}
+            </span>
+            <button 
+              onClick={handleRemoveImage}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-error)',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              移除
+            </button>
+          </div>
+          <img 
+            src={selectedImage.base64} 
+            alt="Selected" 
+            style={{
+              maxWidth: '100%',
+              maxHeight: '200px',
+              objectFit: 'contain',
+              borderRadius: '4px'
+            }} 
+          />
+        </div>
+      )}
       <textarea 
         ref={inputRef}
         value={value}
@@ -70,6 +139,43 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           opacity: isDisabled ? 0.7 : 1
         }}
       />
+      
+      {/* 图片选择器按钮 */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-start',
+        marginTop: '8px' 
+      }}>
+        <button
+          onClick={openImageSelector}
+          disabled={isDisabled}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: 'var(--background-modifier-border)',
+            color: 'var(--text-normal)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
+            opacity: isDisabled ? 0.7 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
+          <span style={{ fontSize: '16px' }}>📷</span>
+          添加图片
+        </button>
+      </div>
+      
+      {/* 图片选择器模态框 */}
+      {isImageSelectorOpen && (
+        <ImageAttachmentSelector
+          app={app}
+          onImageSelected={handleImageSelect}
+          isOpen={isImageSelectorOpen}
+          onClose={() => setIsImageSelectorOpen(false)}
+        />
+      )}
       
       {/* 状态和取消按钮 */}
       {isDisabled && (

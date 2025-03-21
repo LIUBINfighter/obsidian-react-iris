@@ -94,13 +94,18 @@ export class LMStudioService implements AIService {
           content: msg.content
         });
       } 
-      // 处理包含图像的消息
+      // 处理包含图像的消息 - 按照LM Studio官方文档格式处理
       else if (msg.imageData) {
         formattedMessages.push({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: [
-            { type: "text", text: msg.content },
-            { type: "image_url", image_url: { url: msg.imageData } }
+            { type: "text", text: msg.content || "请描述这张图片" },
+            { 
+              type: "image_url", 
+              image_url: { 
+                url: msg.imageData.startsWith('data:') ? msg.imageData : `data:image/png;base64,${msg.imageData}` 
+              } 
+            }
           ]
         });
       }
