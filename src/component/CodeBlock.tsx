@@ -60,7 +60,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
       <div 
         className="code-block-header" 
         style={{
-          padding: '8px 12px',
+        //   padding: '8px 12px', 不添加padding使得样式更紧凑
           backgroundColor: 'var(--background-modifier-hover)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -80,7 +80,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
               color: 'var(--text-accent)',
               cursor: 'pointer',
               fontSize: '14px',
-              padding: '2px 6px',
+            //   padding: '2px 6px',
               borderRadius: '4px'
             }}
             aria-label="添加到收藏"
@@ -95,7 +95,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
               color: isCopied ? 'var(--text-success)' : 'var(--text-normal)',
               cursor: 'pointer',
               fontSize: '13px',
-              padding: '2px 6px',
+            //   padding: '2px 6px',
               borderRadius: '4px'
             }}
             aria-label="复制代码"
@@ -109,7 +109,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ segment, app, onAddToInbox
         ref={codeContainerRef}
         className="code-block-content"
         style={{
-          padding: '8px',
+        //   padding: '8px', 不添加padding使得样式更加紧凑
           overflow: 'auto'
         }}
       />

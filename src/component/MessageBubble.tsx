@@ -142,6 +142,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAddToIn
                         key={segment.id}
                         segment={segment}
                         onAddToInbox={handleSegmentAddToInbox}
+                        app={app}
                       />
                     );
                 }
