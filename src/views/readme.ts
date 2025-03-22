@@ -30,7 +30,9 @@ export class ReadMeView extends ItemView {
   getDisplayText(): string {
     return "ReadMe & React View";
   }
-
+  getIcon(): string {
+	return 'info';
+  }
   async onOpen() {
     const container = this.containerEl.children[1];
     container.empty();

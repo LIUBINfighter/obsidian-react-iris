@@ -31,7 +31,7 @@ interface ChatHeaderProps {
  * 聊天头部组件 - 显示聊天标题和控制按钮
  */
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
-  title = '聊天助手',
+  title = '',
   serviceType,
   leftSidebarVisible,
   sidebarVisible,

@@ -27,7 +27,7 @@ export class ChatView extends ItemView {
     }
 
     getDisplayText(): string {
-        return '聊天助手';
+        return 'Iris Chatbox';
     }
 
     getIcon(): string {
