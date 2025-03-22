@@ -274,3 +274,26 @@ function extractTitle(content: string): string {
 export async function openNote(app: App, file: TFile): Promise<void> {
   await app.workspace.getLeaf(false).openFile(file);
 }
+
+interface ExportOptions {
+  title: string;
+  tags: string[];
+}
+
+export function generateMarkdownContent(messages: Message[], options: ExportOptions): string {
+  const { title, tags } = options;
+  const tagString = tags.join(' ');
+  
+  let markdown = `# ${title}\n`;
+  if (tagString) {
+    markdown += `tags: ${tagString}\n\n`;
+  }
+  
+  messages.forEach(msg => {
+    const prefix = msg.sender === 'user' ? 'User' : 'Assistant';
+    markdown += `> [!cite]+ ${prefix}\n`;
+    markdown += `> ${msg.content.replace(/\n/g, '\n> ')}\n\n`;
+  });
+  
+  return markdown;
+}

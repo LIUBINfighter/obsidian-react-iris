@@ -28,6 +28,15 @@ interface ChatHeaderProps {
   onOpenReadme?: () => void; // 添加新的prop
 }
 
+interface Model {
+  id?: string;      // LMStudio 模型ID
+  name?: string;    // Ollama 模型名称
+  object?: string;
+  created?: number;
+  owned_by?: string;
+  tag?: string;     // Ollama 模型标签
+}
+
 /**
  * 聊天头部组件 - 显示聊天标题和控制按钮
  */
@@ -54,7 +63,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const leftSidebarIconRef = useRef<HTMLDivElement>(null);
   const rightSidebarIconRef = useRef<HTMLDivElement>(null);
   const helpIconRef = useRef<HTMLDivElement>(null); // 添加帮助图标的ref
-  const [availableModels, setAvailableModels] = useState<LMStudioModel[]>([]);
+  const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [internalSelectedModel, setInternalSelectedModel] = useState<string>(selectedModel || '');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [lmStudioConnected, setLmStudioConnected] = useState(false);
@@ -85,13 +94,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       if (isConnected) {
         // 获取模型列表
         const models = await ollamaService.listModels();
-        setAvailableModels(models);
+        // 转换为通用模型类型
+        const convertedModels: Model[] = models.map(model => ({
+          name: model.name,
+          tag: model.tag
+        }));
+        setAvailableModels(convertedModels);
 
         // 如果有模型且没有选择过模型，自动选择第一个
-        if (models.length > 0 && !internalSelectedModel) {
-          setInternalSelectedModel(models[0].name);
+        if (convertedModels.length > 0 && !internalSelectedModel) {
+          setInternalSelectedModel(convertedModels[0].name);
           if (onModelChange) {
-            onModelChange(models[0].name);
+            onModelChange(convertedModels[0].name);
           }
         }
       }
@@ -319,8 +333,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <option value="">无可用模型</option>
               ) : (
                 availableModels.map(model => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
+                  <option key={model.name || model.id} value={model.name || model.id}>
+                    {model.name || model.id}
                   </option>
                 ))
               )}

@@ -4,11 +4,9 @@
  * @returns 格式化后的字符串
  */
 export function formatResponseTime(ms: number): string {
-  if (ms < 1000) {
-    return `${ms}ms`;
-  } else {
-    return `${(ms / 1000).toFixed(2)}s`;
-  }
+  if (ms <= 0) return '0ms';
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1).replace(/\.0$/, '')}s`;
 }
 
 /**
