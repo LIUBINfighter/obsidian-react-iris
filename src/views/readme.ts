@@ -28,7 +28,7 @@ export class ReadMeView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "ReadMe & React View";
+    return "Iris ReadMe & Docs";
   }
   getIcon(): string {
 	return 'info';

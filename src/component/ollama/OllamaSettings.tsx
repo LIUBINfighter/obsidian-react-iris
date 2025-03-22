@@ -1045,7 +1045,7 @@ export function OllamaSettings() {
           </button>
         </div>
         
-        <div style={styles.commandText}></div>
+        <div style={styles.commandText}>
           命令: curl http://localhost:11434/api/generate -d '{"{"}
             "model": "{selectedModel || "model-name"}",
             "prompt": "{generatePrompt ? generatePrompt.substring(0, 20) + '...' : "your prompt"}",
@@ -1060,7 +1060,7 @@ export function OllamaSettings() {
             borderRadius: '4px',
             marginTop: '10px',
             whiteSpace: 'pre-wrap'
-          }}></div>
+          }}>
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>生成结果:</div>
             {generateResponse}
           </div>
@@ -1083,7 +1083,7 @@ export function OllamaSettings() {
           >
             <option value="">选择模型</option>
             {models.map(model => (
-              <option key={model.digest} value={`${model.name}:${model.tag}`}></option>
+              <option key={model.digest} value={`${model.name}:${model.tag}`}>
                 {formatModelName(model.name, model.tag)}
               </option>
             ))}
@@ -1109,12 +1109,12 @@ export function OllamaSettings() {
               ...styles.button,
               ...(!selectedModel || !embedInput || embedLoading ? styles.buttonDisabled : {})
             }}
-          ></button>
+          >
             {embedLoading ? '生成中...' : '生成嵌入向量'}
           </button>
         </div>
         
-        <div style={styles.commandText}></div>
+        <div style={styles.commandText}>
           命令: curl http://localhost:11434/api/embed -d '{"{"}
             "model": "{selectedModel || "model-name"}",
             "input": "{embedInput ? embedInput.substring(0, 20) + '...' : "your text"}"
@@ -1132,7 +1132,7 @@ export function OllamaSettings() {
             whiteSpace: 'pre-wrap',
             overflow: 'auto',
             maxHeight: '200px'
-          }}></div>
+          }}>
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>嵌入向量 (前10个元素):</div>
             {embedResponse}
           </div>
@@ -1188,17 +1188,51 @@ export function OllamaSettings() {
                   padding: '10px',
                   borderBottom: index < chatMessages.length - 1 ? '1px solid var(--background-modifier-border)' : 'none',
                   backgroundColor: msg.role === 'user' ? 'var(--background-secondary)' : 'transparent'
-                }}</div>
+                }}>
                   <div style={{fontWeight: 'bold', marginBottom: '5px'}}>
+                    {msg.role === 'user' ? '用户' : '助手'}:
+                  </div>
+                  <div style={{whiteSpace: 'pre-wrap'}}>{msg.content}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <textarea
+            placeholder="输入聊天消息"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            style={{
+              ...styles.input,
+              height: '100px',
+              width: '100%',
+              marginBottom: '10px'
+            }}
+            disabled={chatLoading}
+          />
+          
+          {/* 选项 */}
+          <div style={{
             display: 'flex',
             gap: '16px',
             marginBottom: '10px'
-          }}></div>
+          }}>
             <label style={{display: 'flex', alignItems: 'center'}}>
               <input
                 type="checkbox"
                 checked={streamingEnabled}
                 onChange={(e) => setStreamingEnabled(e.target.checked)}
+                disabled={chatLoading}
+                style={{marginRight: '5px'}}
+              />
+              启用流式响应
+            </label>
+            
+            <label style={{display: 'flex', alignItems: 'center'}}>
+              <input
+                type="checkbox"
+                checked={useJsonFormat}
+                onChange={(e) => setUseJsonFormat(e.target.checked)}
                 disabled={chatLoading}
                 style={{marginRight: '5px'}}
               />
@@ -1225,7 +1259,7 @@ export function OllamaSettings() {
                 ...styles.button,
                 ...(!selectedModel || !chatInput || chatLoading ? styles.buttonDisabled : {})
               }}
-            ></button>
+            >
               {chatLoading ? '发送中...' : '发送消息'}
             </button>
             
@@ -1243,7 +1277,7 @@ export function OllamaSettings() {
           </div>
         </div>
         
-        <div style={styles.commandText}></div>
+        <div style={styles.commandText}>
           命令: curl http://localhost:11434/api/chat -d '{"{"}
             "model": "{selectedModel || "model-name"}",
             "messages": [...],

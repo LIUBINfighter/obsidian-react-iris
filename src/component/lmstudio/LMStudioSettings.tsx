@@ -217,7 +217,7 @@ export function LMStudioSettings() {
     statusIndicator: {
       padding: '4px 12px',
       borderRadius: '4px',
-      marginRight: '16px',
+      marginLeft: '16px',
       fontWeight: 500
     },
     connected: {
@@ -413,9 +413,7 @@ export function LMStudioSettings() {
           >
             测试连接
           </button>
-          <span style={styles.commandText}>curl http://127.0.0.1:1234/v1/models</span>
-          <span style={styles.commandDesc}>检测LM Studio服务是否运行</span>
-          <div style={{
+		  <div style={{
             ...styles.statusIndicator,
             ...(connectionStatus === 'connected' ? styles.connected : 
                connectionStatus === 'disconnected' ? styles.disconnected : 
@@ -424,6 +422,8 @@ export function LMStudioSettings() {
             {connectionStatus === 'connected' ? '已连接' :
              connectionStatus === 'disconnected' ? '未连接' : '未知'}
           </div>
+		  <span style={styles.commandText}>curl http://127.0.0.1:1234/v1/models</span>
+          <span style={styles.commandDesc}>检测LM Studio服务是否运行</span>
         </div>
       </div>
 
