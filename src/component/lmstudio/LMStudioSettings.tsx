@@ -385,6 +385,22 @@ export function LMStudioSettings() {
       <h2 style={styles.heading}>LM Studio 配置</h2>
       {/* <>/// <ref="https://lmstudio.ai/docs/app/api/endpoints/rest" />
 	  </> */}
+	<div style={{
+		backgroundColor: 'var(--background-secondary)',
+		padding: '16px',
+		borderRadius: '4px',
+		marginBottom: '20px'
+	}}>
+		<h3 style={{margin: '0 0 12px 0'}}>LM Studio 主要功能</h3>
+		<ul style={{margin: '0', paddingLeft: '20px'}}>
+	    	<li>无需命令行，你可以通过下面的按钮学习如何交互。</li>  
+    		<li>用于运行本地 LLMs 的桌面应用程序，后端服务器和</li>
+			<li>熟悉的聊天界面，方便的管理页面和Runtime</li>
+			<li>通过 Hugging Face 🤗 搜索和下载模型</li>
+			<li>具有类 OpenAI 端点的本地服务器</li>
+			<li>本地模型和配置管理系统，以及独特的Rest API.</li>
+		</ul>
+	</div>
       <div style={styles.connectionStatus}>
         <div style={styles.commandRow}>
           <button 

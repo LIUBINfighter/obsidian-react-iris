@@ -69,22 +69,22 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
           LM Studio
         </button>
         <button 
-          style={activeTab === 'online' ? activeTabStyle : tabStyle}
+          style={activeTab === 'online' ? betaTabStyle(true) : betaTabStyle(false)}
           onClick={() => setActiveTab('online')}
         >
-          Online
+          Online (WIP)
         </button>
 		<button 
           style={activeTab === 'lmstudio-rest' ? betaTabStyle(true) : betaTabStyle(false)}
           onClick={() => setActiveTab('lmstudio-rest')}
         >
-          Rest API (Beta)
+          Rest API (WIP)
         </button>
         <button 
           style={activeTab === 'mcp' ? betaTabStyle(true) : betaTabStyle(false)}
           onClick={() => setActiveTab('mcp')}
         >
-          MCP (Beta)
+          MCP (WIP)
         </button>
       </div>
       

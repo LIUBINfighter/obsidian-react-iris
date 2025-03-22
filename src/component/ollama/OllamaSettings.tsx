@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OllamaService, OllamaModel, PullProgressResponse } from '../../services/OllamaService';
+import { OllamaService, OllamaModel, PullProgressResponse, RunningModel, GenerateResponse } from '../../services/OllamaService';
 
 // 导入Electron相关API
 declare const window: Window & {
@@ -17,6 +17,22 @@ export function OllamaSettings() {
   const [modelToDelete, setModelToDelete] = useState<{name: string, tag: string} | null>(null);
   const [isServerStarting, setIsServerStarting] = useState(false);
   const [serverOutput, setServerOutput] = useState<string | null>(null);
+
+  // 新增状态
+  const [version, setVersion] = useState<string>('');
+  const [runningModels, setRunningModels] = useState<RunningModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [generatePrompt, setGeneratePrompt] = useState<string>('');
+  const [generateResponse, setGenerateResponse] = useState<string>('');
+  const [generateLoading, setGenerateLoading] = useState<boolean>(false);
+  const [selectedModelInfo, setSelectedModelInfo] = useState<any>(null);
+  const [showModelInfo, setShowModelInfo] = useState<boolean>(false);
+  const [embedInput, setEmbedInput] = useState<string>('');
+  const [embedResponse, setEmbedResponse] = useState<string>('');
+  const [embedLoading, setEmbedLoading] = useState<boolean>(false);
+  const [modelSource, setModelSource] = useState<string>('');
+  const [modelDestination, setModelDestination] = useState<string>('');
+  const [modelDetailVisible, setModelDetailVisible] = useState<boolean>(false);
 
   const ollamaService = new OllamaService({ baseUrl: 'http://localhost:11434', modelName: '' });
 
@@ -141,11 +157,111 @@ export function OllamaSettings() {
     }
   };
 
+  // 获取Ollama版本
+  const getVersion = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const versionData = await ollamaService.getVersion();
+      setVersion(versionData);
+    } catch (err) {
+      setError('获取版本信息失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 获取运行中的模型
+  const getRunningModels = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const modelList = await ollamaService.listRunningModels();
+      setRunningModels(modelList);
+    } catch (err) {
+      setError('获取运行中模型失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 生成文本
+  const handleGenerate = async () => {
+    if (!selectedModel || !generatePrompt) return;
+    
+    setGenerateLoading(true);
+    setError(null);
+    try {
+      const response = await ollamaService.generateCompletion({
+        model: selectedModel,
+        prompt: generatePrompt,
+        stream: false
+      });
+      setGenerateResponse(response.response);
+    } catch (err) {
+      setError('生成文本失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setGenerateLoading(false);
+    }
+  };
+  
+  // 获取模型详细信息
+  const getModelInfo = async (modelName: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const info = await ollamaService.showModelInfo(modelName);
+      setSelectedModelInfo(info);
+      setShowModelInfo(true);
+    } catch (err) {
+      setError('获取模型信息失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 生成嵌入向量
+  const handleGenerateEmbeddings = async () => {
+    if (!selectedModel || !embedInput) return;
+    
+    setEmbedLoading(true);
+    setError(null);
+    try {
+      const response = await ollamaService.generateEmbeddings(embedInput, selectedModel);
+      // 只显示前10个元素，避免显示过多
+      const truncatedEmbeddings = response.embeddings[0].slice(0, 10);
+      setEmbedResponse(JSON.stringify(truncatedEmbeddings, null, 2) + '\n...(省略剩余元素)');
+    } catch (err) {
+      setError('生成嵌入向量失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setEmbedLoading(false);
+    }
+  };
+  
+  // 复制模型
+  const handleCopyModel = async () => {
+    if (!modelSource || !modelDestination) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      await ollamaService.copyModel(modelSource, modelDestination);
+      // 复制成功后刷新模型列表
+      await fetchModels();
+    } catch (err) {
+      setError('复制模型失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 组件加载时测试连接
   useEffect(() => {
     testConnection().then(() => {
       if (connectionStatus === 'connected') {
         fetchModels();
+        getVersion();
+        getRunningModels();
       }
     });
   }, []);
@@ -214,6 +330,22 @@ export function OllamaSettings() {
     return `${name}:${tag}`;
   };
 
+  // 格式化JSON显示
+  const renderJson = (jsonObj: any) => {
+    return (
+      <pre style={{ 
+        backgroundColor: 'var(--background-secondary)', 
+        padding: '10px', 
+        borderRadius: '4px',
+        overflow: 'auto',
+        maxHeight: '400px',
+        fontSize: '12px'
+      }}>
+        {JSON.stringify(jsonObj, null, 2)}
+      </pre>
+    );
+  };
+
   // 内联样式定义
   const styles = {
     container: {
@@ -232,9 +364,9 @@ export function OllamaSettings() {
       marginBottom: '20px'
     },
     statusIndicator: {
+	  marginLeft: '16px',
       padding: '4px 12px',
       borderRadius: '4px',
-      marginRight: '16px',
       fontWeight: 500
     },
     connected: {
@@ -420,8 +552,6 @@ export function OllamaSettings() {
           >
             测试连接
           </button>
-          <span style={styles.commandText}>curl http://localhost:11434/api/version</span>
-          <span style={styles.commandDesc}>检测Ollama服务是否运行</span>
 		  <div style={{
           ...styles.statusIndicator,
           ...(connectionStatus === 'connected' ? styles.connected : 
@@ -431,12 +561,35 @@ export function OllamaSettings() {
           {connectionStatus === 'connected' ? '已连接' :
            connectionStatus === 'disconnected' ? '未连接' : '未知'}
         </div>
+          <span style={styles.commandText}>curl http://localhost:11434/api/version</span>
+          <span style={styles.commandDesc}>检测Ollama服务是否运行</span>
+
         </div>
       </div>
 
       {error && (
         <div style={styles.errorMessage}>
           {error}
+        </div>
+      )}
+      
+      {/* 版本信息 */}
+      {version && (
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={styles.heading}>Ollama 版本</h3>
+          <div style={styles.commandRow}>
+            <span style={styles.commandText}>版本: {version}</span>
+            <button 
+              onClick={getVersion} 
+              disabled={loading}
+              style={{
+                ...styles.button,
+                ...(loading ? styles.buttonDisabled : {})
+              }}
+            >
+              刷新版本信息
+            </button>
+          </div>
         </div>
       )}
 
@@ -454,8 +607,23 @@ export function OllamaSettings() {
           >
             获取模型列表
           </button>
-          <span style={styles.commandText}>ollama list</span>
+          <span style={styles.commandText}>curl http://localhost:11434/api/tags</span>
           <span style={styles.commandDesc}>列出所有已安装的模型</span>
+        </div>
+        
+        <div style={styles.commandRow}>
+          <button 
+            onClick={getRunningModels} 
+            disabled={loading || connectionStatus !== 'connected'}
+            style={{
+              ...styles.button,
+              ...(loading || connectionStatus !== 'connected' ? styles.buttonDisabled : {})
+            }}
+          >
+            获取运行中模型
+          </button>
+          <span style={styles.commandText}>curl http://localhost:11434/api/ps</span>
+          <span style={styles.commandDesc}>列出所有当前运行的模型</span>
         </div>
         
         {/* 添加启动Ollama服务按钮 */}
@@ -491,6 +659,40 @@ export function OllamaSettings() {
           </div>
         )}
       </div>
+
+      {/* 运行中的模型 */}
+      {runningModels.length > 0 && (
+        <div style={styles.commandSection}>
+          <h3 style={styles.heading}>运行中的模型</h3>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.tableHeader}>模型名称</th>
+                <th style={styles.tableHeader}>大小</th>
+                <th style={styles.tableHeader}>过期时间</th>
+                <th style={styles.tableHeader}>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runningModels.map(model => (
+                <tr key={model.digest}>
+                  <td style={styles.tableCell}>{model.name}</td>
+                  <td style={styles.tableCell}>{formatSize(model.size)}</td>
+                  <td style={styles.tableCell}>{new Date(model.expires_at).toLocaleString()}</td>
+                  <td style={styles.tableCell}>
+                    <button 
+                      onClick={() => getModelInfo(model.name)}
+                      style={styles.button}
+                    >
+                      查看详情
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div style={styles.commandSection}>
         <h3 style={styles.heading}>已安装模型</h3>
@@ -538,6 +740,12 @@ export function OllamaSettings() {
                       >
                         删除
                       </button>
+                      <button 
+                        onClick={() => getModelInfo(`${model.name}:${model.tag}`)}
+                        style={styles.button}
+                      >
+                        查看详情
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -551,6 +759,29 @@ export function OllamaSettings() {
         )}
       </div>
 
+      {/* 模型详情模态框 */}
+      {showModelInfo && selectedModelInfo && (
+        <div style={styles.modalOverlay}>
+          <div style={{
+            ...styles.modalContent,
+            width: '80%',
+            maxWidth: '800px',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ marginTop: 0 }}>模型详情</h3>
+            {renderJson(selectedModelInfo)}
+            <div style={styles.modalButtons}>
+              <button
+                onClick={() => setShowModelInfo(false)}
+                style={styles.cancelButton}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={styles.downloadSection}>
         <h3 style={styles.heading}>下载新模型</h3>
         <div style={styles.downloadForm}>
@@ -577,7 +808,9 @@ export function OllamaSettings() {
           </button>
         </div>
         <div style={styles.commandText}>
-          命令: ollama pull {modelInput || 'model-name:tag'}
+          命令: curl http://localhost:11434/api/pull -d '{"{"}
+            "model": "{modelInput || "model-name:tag"}"
+          {"}"}'
         </div>
 
         {downloadProgress && (
@@ -593,6 +826,186 @@ export function OllamaSettings() {
               <span>进度: {downloadProgress.progress}%</span>
               <span>{downloadProgress.progress < 100 ? '下载中...' : '下载完成'}</span>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* 复制模型 */}
+      <div style={styles.commandSection}>
+        <h3 style={styles.heading}>复制模型</h3>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '10px'
+        }}>
+          <input 
+            type="text" 
+            placeholder="源模型名称 (例如: llama3.2)" 
+            value={modelSource}
+            onChange={(e) => setModelSource(e.target.value)}
+            style={styles.input}
+          />
+          <input 
+            type="text" 
+            placeholder="目标模型名称 (例如: llama3-backup)" 
+            value={modelDestination}
+            onChange={(e) => setModelDestination(e.target.value)}
+            style={styles.input}
+          />
+          <button 
+            onClick={handleCopyModel}
+            disabled={!modelSource || !modelDestination || loading}
+            style={{
+              ...styles.button,
+              ...(!modelSource || !modelDestination || loading ? styles.buttonDisabled : {})
+            }}
+          >
+            复制模型
+          </button>
+        </div>
+        <div style={styles.commandText}>
+          命令: curl -X POST http://localhost:11434/api/copy -d '{"{"}
+            "source": "{modelSource || "source-model"}",
+            "destination": "{modelDestination || "destination-model"}"
+          {"}"}'
+        </div>
+      </div>
+
+      {/* 文本生成 */}
+      <div style={styles.commandSection}>
+        <h3 style={styles.heading}>文本生成</h3>
+        <div style={{marginBottom: '10px'}}>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              ...styles.input,
+              marginBottom: '10px',
+              width: '100%'
+            }}
+          >
+            <option value="">选择模型</option>
+            {models.map(model => (
+              <option key={model.digest} value={`${model.name}:${model.tag}`}>
+                {formatModelName(model.name, model.tag)}
+              </option>
+            ))}
+          </select>
+          
+          <textarea
+            placeholder="输入提示词"
+            value={generatePrompt}
+            onChange={(e) => setGeneratePrompt(e.target.value)}
+            style={{
+              ...styles.input,
+              height: '100px',
+              width: '100%',
+              marginBottom: '10px'
+            }}
+          />
+          
+          <button
+            onClick={handleGenerate}
+            disabled={!selectedModel || !generatePrompt || generateLoading}
+            style={{
+              ...styles.button,
+              ...(!selectedModel || !generatePrompt || generateLoading ? styles.buttonDisabled : {})
+            }}
+          >
+            {generateLoading ? '生成中...' : '生成文本'}
+          </button>
+        </div>
+        
+        <div style={styles.commandText}>
+          命令: curl http://localhost:11434/api/generate -d '{"{"}
+            "model": "{selectedModel || "model-name"}",
+            "prompt": "{generatePrompt ? generatePrompt.substring(0, 20) + '...' : "your prompt"}",
+            "stream": false
+          {"}"}'
+        </div>
+        
+        {generateResponse && (
+          <div style={{
+            padding: '10px',
+            backgroundColor: 'var(--background-secondary)',
+            borderRadius: '4px',
+            marginTop: '10px',
+            whiteSpace: 'pre-wrap'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>生成结果:</div>
+            {generateResponse}
+          </div>
+        )}
+      </div>
+      
+      {/* 嵌入向量生成 */}
+      <div style={styles.commandSection}>
+        <h3 style={styles.heading}>生成嵌入向量</h3>
+        <div style={{marginBottom: '10px'}}>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              ...styles.input,
+              marginBottom: '10px',
+              width: '100%'
+            }}
+            disabled={embedLoading}
+          >
+            <option value="">选择模型</option>
+            {models.map(model => (
+              <option key={model.digest} value={`${model.name}:${model.tag}`}>
+                {formatModelName(model.name, model.tag)}
+              </option>
+            ))}
+          </select>
+          
+          <textarea
+            placeholder="输入文本"
+            value={embedInput}
+            onChange={(e) => setEmbedInput(e.target.value)}
+            style={{
+              ...styles.input,
+              height: '100px',
+              width: '100%',
+              marginBottom: '10px'
+            }}
+            disabled={embedLoading}
+          />
+          
+          <button
+            onClick={handleGenerateEmbeddings}
+            disabled={!selectedModel || !embedInput || embedLoading}
+            style={{
+              ...styles.button,
+              ...(!selectedModel || !embedInput || embedLoading ? styles.buttonDisabled : {})
+            }}
+          >
+            {embedLoading ? '生成中...' : '生成嵌入向量'}
+          </button>
+        </div>
+        
+        <div style={styles.commandText}>
+          命令: curl http://localhost:11434/api/embed -d '{"{"}
+            "model": "{selectedModel || "model-name"}",
+            "input": "{embedInput ? embedInput.substring(0, 20) + '...' : "your text"}"
+          {"}"}'
+        </div>
+        
+        {embedResponse && (
+          <div style={{
+            padding: '10px',
+            backgroundColor: 'var(--background-secondary)',
+            borderRadius: '4px',
+            marginTop: '10px',
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            whiteSpace: 'pre-wrap',
+            overflow: 'auto',
+            maxHeight: '200px'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>嵌入向量 (前10个元素):</div>
+            {embedResponse}
           </div>
         )}
       </div>
