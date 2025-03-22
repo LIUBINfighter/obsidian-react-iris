@@ -7,14 +7,14 @@ import ReactIris from '../main';
 
 // 修改选项卡类型
 enum TabType {
-  INSTRUCTIONS = 'instructions', // 将EXAMPLE改为INSTRUCTIONS
+  INSTRUCTIONS = 'instructions',
   SETTINGS = 'settings'
 }
 
 // ReadMe视图实现
 export class ReadMeView extends ItemView {
   root: Root | null = null;
-  activeTab: TabType = TabType.INSTRUCTIONS; // 默认显示使用说明选项卡
+  activeTab: TabType = TabType.INSTRUCTIONS;
   reactContainer: HTMLElement | null = null;
   plugin: ReactIris | null = null;
 
@@ -42,117 +42,53 @@ export class ReadMeView extends ItemView {
     const readmeSection = container.createEl("div", { cls: "readme-section" });
     readmeSection.createEl("h1", { text: "React Iris Plugin ReadMe" });
     
-    // 创建选项卡容器
-    const tabsContainer = readmeSection.createEl("div", { 
-      cls: "tabs-container",
-      attr: { style: "margin: var(--size-4-6) 0;" }
-    });
-    
-    // 创建使用说明选项卡按钮
-    const instructionsTab = tabsContainer.createEl("button", {
-      text: "使用说明",
-      cls: `tab-button ${this.activeTab === TabType.INSTRUCTIONS ? 'active' : ''}`,
-      attr: {
-        'data-tab': TabType.INSTRUCTIONS,
-        'style': 'margin-right: 10px;'
-      }
-    });
-    
-    // 设置选项卡按钮
-    const settingsTab = tabsContainer.createEl("button", {
-      text: "设置",
-      cls: `tab-button ${this.activeTab === TabType.SETTINGS ? 'active' : ''}`,
-      attr: {
-        'data-tab': TabType.SETTINGS,
-        'style': 'margin-right: 10px;'
-      }
-    });
-    
-    // 添加选项卡点击事件
-    instructionsTab.addEventListener("click", () => {
-      this.setActiveTab(TabType.INSTRUCTIONS);
-      this.updateTabs(instructionsTab, [settingsTab]);
-      this.renderContent(container as HTMLElement);
-    });
-    
-    // 设置选项卡点击事件
-    settingsTab.addEventListener("click", () => {
-      this.setActiveTab(TabType.SETTINGS);
-      this.updateTabs(settingsTab, [instructionsTab]);
-      this.renderContent(container as HTMLElement);
-    });
-    
     // 创建内容部分的容器
     const contentSection = container.createEl("div", { 
       cls: "content-section",
       attr: { style: "margin-top: 20px;" }
     });
     
-    // 渲染当前选中的内容
-    this.renderContent(container as HTMLElement);
-  }
+//     // 渲染当前选中的内容
+//     this.renderContent(container as HTMLElement);
+//   }
   
-  // 更新选项卡样式，修改为接受多个非活动选项卡
-  updateTabs(activeTab: HTMLElement, inactiveTabs: HTMLElement[]) {
-    activeTab.addClass('active');
-    inactiveTabs.forEach(tab => tab.removeClass('active'));
-  }
+//   // 更新选项卡样式，修改为接受多个非活动选项卡
+//   updateTabs(activeTab: HTMLElement, inactiveTabs: HTMLElement[]) {
+//     activeTab.addClass('active');
+//     inactiveTabs.forEach(tab => tab.removeClass('active'));
+//   }
   
-  // 设置当前活动选项卡
-  setActiveTab(tab: TabType) {
-    this.activeTab = tab;
-  }
+//   // 设置当前活动选项卡
+//   setActiveTab(tab: TabType) {
+//     this.activeTab = tab;
+//   }
   
-  // 重命名方法，从renderReactComponent改为renderContent
-  renderContent(container: Element) {
-    // 将Element转换为HTMLElement
-    const containerEl = container as HTMLElement;
+//   // 重命名方法，从renderReactComponent改为renderContent
+//   renderContent(container: Element) {
+//     // 将Element转换为HTMLElement
+//     const containerEl = container as HTMLElement;
     
-    // 获取或创建内容部分
-    let contentSection = containerEl.querySelector(".content-section");
-    if (!contentSection) {
-      contentSection = containerEl.createEl("div", { 
-        cls: "content-section",
-        attr: { style: "margin-top: 20px;" }
-      });
-    }
+//     // 获取或创建内容部分
+//     let contentSection = containerEl.querySelector(".content-section");
+//     if (!contentSection) {
+//       contentSection = containerEl.createEl("div", { 
+//         cls: "content-section",
+//         attr: { style: "margin-top: 20px;" }
+//       });
+//     }
     
-    // 清空当前内容
-    contentSection.empty();
+//     // 清空当前内容
+//     contentSection.empty();
     
     try {
-	//   无需标题	
       // 卸载现有的React根节点（如果存在）
       if (this.root) {
         this.root.unmount();
         this.root = null;
       }
       
-      if (this.activeTab === TabType.INSTRUCTIONS) {
-        // 使用说明选项卡，显示纯文本内容而不是React组件
-        const instructionsContainer = contentSection.createEl("div", {
-          cls: "instructions-container",
-          attr: { 
-            style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
-          }
-        });
-        
-        // 添加使用说明内容
-        instructionsContainer.createEl("h3", { text: "欢迎使用 React Iris 插件" });
-        
-        const featuresList = instructionsContainer.createEl("ul");
-        featuresList.createEl("li", { text: "使用侧边栏中的新芽图标或命令面板打开聊天助手" });
-        featuresList.createEl("li", { text: "在聊天界面中与AI进行对话" });
-        featuresList.createEl("li", { text: "可以创建和管理多个对话会话" });
-        featuresList.createEl("li", { text: "支持将重要消息保存到收藏夹" });
-        
-        instructionsContainer.createEl("p", { 
-          text: "在设置选项卡中可以配置AI服务的相关参数，如API密钥、模型名称等。",
-          attr: { style: "margin-top: 15px;" }
-        });
-        
-        console.log("使用说明内容已渲染");
-      } else if (this.activeTab === TabType.SETTINGS) {
+      if (false) {
+      } else if (true) {
         // 创建React容器用于设置组件
         this.reactContainer = contentSection.createEl("div", { 
           cls: "react-container",
