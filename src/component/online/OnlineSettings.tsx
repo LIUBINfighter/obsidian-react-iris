@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { OnlineModelList } from './OnlineModelList';
 import { OnlineModelForm } from './OnlineModelForm';
+import { debounce } from '../../utils/debounceUtils';
+import ReactIris from '../../main';
 
 export interface OnlineModel {
   provider: string;
@@ -10,7 +12,11 @@ export interface OnlineModel {
   supportsVision: boolean;
 }
 
-export const OnlineSettings: React.FC = () => {
+interface OnlineSettingsProps {
+  plugin: ReactIris;
+}
+
+export const OnlineSettings: React.FC<OnlineSettingsProps> = ({ plugin }) => {
   const [editingModel, setEditingModel] = React.useState<OnlineModel | null>(null);
   const defaultModels: OnlineModel[] = [
     {
@@ -37,6 +43,26 @@ export const OnlineSettings: React.FC = () => {
   ];
 
   const [models, setModels] = React.useState<OnlineModel[]>(defaultModels);
+
+  // 初始化时从插件配置中读取模型列表
+  useEffect(() => {
+    const loadModels = async () => {
+      const savedModels = plugin.settings.onlineModels || [];
+      if (savedModels.length > 0) {
+        setModels(savedModels);
+      }
+    };
+    loadModels();
+  }, [plugin]);
+
+  // 当模型列表变更时，更新插件配置
+  useEffect(() => {
+    const saveModels = debounce(async () => {
+      plugin.settings.onlineModels = models;
+      await plugin.saveSettings();
+    }, 1000);
+    saveModels();
+  }, [models, plugin]);
 
   const handleAddModel = (model: OnlineModel) => {
     if (editingModel) {
