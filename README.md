@@ -1,48 +1,61 @@
 # Obsidian React Iris
 
-一个基于React的Obsidian AI助手插件，提供强大的大语言模型交互功能。
+<img src="docs/screenshots/plugin-preview.png" width="800" alt="Plugin Preview">
 
-## 功能特性
+## 🌟 核心特性
 
-- **AI聊天助手**：内置聊天界面，支持与多种大语言模型进行对话
-- **多会话管理**：支持创建和切换多个聊天会话，方便管理不同的对话上下文
-- **收藏夹功能**：可以收藏重要的AI回复，便于后续查阅
-- **导出功能**：支持将聊天内容导出到Obsidian笔记中
-- **多模型支持**：兼容多种AI服务，包括Ollama、LangChain等
-- **自定义设置**：提供React组件化的设置界面，可配置API密钥、模型参数等
+### LLM 零基础入门
+- [x] 只需知道 API URL 即可使用 OpenAI 等主流服务  
+`<gif: quick-connect-demo>`
+- [x] 为 Obsidian 用户定制的学习路径  
+`<img: learning-path-screenshot>`
+- [x] 详细的逐步引导教程  
+`<img: tutorial-screenshot>`
 
-## 使用方法
+### 📂 本地优先的笔记掌控
+```markdown
+- [x] 原生支持 Markdown/JSON/Canvas
+- [x] 本地运行支持 (Ollama/LM Studio)
+- [x] 内置文档查看器 `<img: local-docs-viewer>`
+```
 
-### 安装
+### ⚙️ 透明可控的AI交互
+| 功能 | 描述 |
+|------|------|
+| 服务开关 | 自由启用/禁用在线服务 `<gif: service-toggle>` |
+| 文件追踪 | 实时显示数据存储位置 `<img: file-location>` |
+| 执行日志 | 完整记录LLM操作过程 `<img: action-log>` |
 
-1. 在Obsidian中打开设置 > 第三方插件
-2. 关闭安全模式
-3. 点击浏览社区插件
-4. 搜索 "React Iris"
-5. 安装插件
-6. 启用插件
+## 🛠️ 快速开始
+```bash
+npm install
+npm run dev
+```
+`<img: installation-screenshot>`
 
-### 配置
+## 🌈 设计理念
+```mermaid
+graph TD
+  A[Obsidian原生整合] --> B[开放架构]
+  B --> C[多LLM支持]
+  B --> D[可扩展收藏系统]
+  D --> E[智能消息分类]
+```
+`<gif: workflow-demo>`
 
-1. 安装完成后，进入插件设置页面
-2. 配置AI服务类型（Ollama、LangChain或模拟服务）
-3. 设置API密钥（如需要）
-4. 配置模型名称、基础URL和温度等参数
-5. 设置默认导出文件夹路径
+## 📚 技术优势
+- 使用 Obsidian 原生 Styles CSS 变量  
+`<img: theme-customization>`
+- 基于 Obsidian API 的智能工具集  
+`<img: api-integration>`
+- 响应式侧边栏设计  
+`<gif: responsive-sidebar>`
 
-### 使用
+## 🤝 开源承诺
+```diff
++ 永久免费的核心功能
+! 未来可能增加增值服务
+- 绝不隐藏任何核心功能
+```
 
-- 点击左侧功能区的「新芽」图标打开聊天助手
-- 点击左侧功能区的「信息」图标查看插件信息
-- 使用命令面板执行「打开聊天助手」命令
-- 在聊天界面输入问题并发送
-- 使用左侧边栏切换或创建新的会话
-- 使用右侧边栏查看和管理收藏的消息
-
-## 开发者
-
-[开发者](./docs/developer.md)
-
-## 许可证
-
-[MIT](LICENSE)
+ℹ️ 完整文档请查看 [开发者指南](docs/developer.md)

@@ -3,9 +3,9 @@
 	"name": "React Iris",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "",
+	"description": "Iris shows almost all the options for llm & AI in Obsidian.",
 	"author": "Jay Bridge",
-	"authorUrl": "",
+	"authorUrl": "https://github.com/LIUBINfighter/obsidian-react-iris",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }
