@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { App, setIcon } from 'obsidian';
 import { InboxComponent } from './sidebar/Inbox';
+import { EmptyTab } from './sidebar/EmptyTab';
 import { Message } from './Chat';
 import ReactIris from '../main';
 import { 
@@ -27,6 +28,7 @@ export const SidebarComponent = forwardRef<{
   removeFromFavorites: (messageId: string) => void
 }, SidebarProps>(
   ({ app, visible, plugin, toggleSidebar, sidebarVisible }, ref) => {
+    const [activeTab, setActiveTab] = useState<'inbox' | 'empty'>('inbox');
     const [favoriteMessages, setFavoriteMessages] = useState<FavoriteItem[]>([]);
     const closeIconRef = useRef<HTMLDivElement>(null);
     
@@ -78,6 +80,44 @@ export const SidebarComponent = forwardRef<{
       removeFromFavorites: handleRemoveFromFavorites
     }), [app]);
 
+    // 添加选项卡头部渲染函数
+    const renderTabHeader = () => (
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid var(--background-modifier-border)',
+        // marginBottom: '8px', // 移除这行  // 这里控制选项卡与下面内容的间距
+        backgroundColor: 'var(--background-secondary-alt)',
+        padding: '0 8px'
+      }}>
+        <button
+          onClick={() => setActiveTab('inbox')}
+          style={{
+            padding: '0px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: `2px solid ${activeTab === 'inbox' ? 'var(--interactive-accent)' : 'transparent'}`,
+            color: activeTab === 'inbox' ? 'var(--text-normal)' : 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          收藏夹
+        </button>
+        <button
+          onClick={() => setActiveTab('empty')}
+          style={{
+            padding: '0px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: `2px solid ${activeTab === 'empty' ? 'var(--interactive-accent)' : 'transparent'}`,
+            color: activeTab === 'empty' ? 'var(--text-normal)' : 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          空白页
+        </button>
+      </div>
+    );
+
     if (!visible) return null;
     
     return (
@@ -106,13 +146,20 @@ export const SidebarComponent = forwardRef<{
           }
           className="sidebar-header"
         />
-        <InboxComponent 
-          messages={favoriteMessages} 
-          onRemove={handleRemoveFromFavorites}
-          onToggleFold={handleToggleFold}
-          app={app}
-          plugin={plugin}
-        />
+        
+        {renderTabHeader()}
+        
+        {activeTab === 'inbox' ? (
+          <InboxComponent 
+            messages={favoriteMessages} 
+            onRemove={handleRemoveFromFavorites}
+            onToggleFold={handleToggleFold}
+            app={app}
+            plugin={plugin}
+          />
+        ) : (
+          <EmptyTab app={app} />
+        )}
       </div>
     );
   }
