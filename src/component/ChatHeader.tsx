@@ -164,8 +164,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     }
   }, []);
 
-  // 左侧操作按钮
-  const leftActions = (
+  // 左侧操作按钮 - 添加显示条件
+  const leftActions = !leftSidebarVisible ? (
     <button
       onClick={toggleLeftSidebar}
       style={createIconButtonStyle(leftSidebarVisible)}
@@ -176,7 +176,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         style={{ width: '16px', height: '16px' }}
       />
     </button>
-  );
+  ) : null;
 
   // 中间状态显示
   const centerContent = (
@@ -208,12 +208,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </>
       ) : (
         <>
+		<></>
           {/* 服务类型选择 */}
           <select 
             value={serviceType}
             onChange={handleServiceChange}
             style={{
-              padding: '2px 4px',
+              padding: '6px 6px',
               backgroundColor: 'var(--background-primary)',
               color: 'var(--text-normal)',
               border: '1px solid var(--background-modifier-border)',

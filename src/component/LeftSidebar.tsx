@@ -11,6 +11,8 @@ interface LeftSidebarProps {
   currentSessionId: string;
   onSelectSession: (sessionId: string) => void;
   onCreateNewSession: () => void;
+  toggleLeftSidebar: () => void;  // 添加这行
+  leftSidebarVisible: boolean;    // 添加这行
 }
 
 export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ 
@@ -19,26 +21,32 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
   plugin,
   currentSessionId,
   onSelectSession,
-  onCreateNewSession
+  onCreateNewSession,
+  toggleLeftSidebar,      // 添加这行
+  leftSidebarVisible      // 添加这行
 }) => {
   const addIconRef = useRef<HTMLDivElement>(null);
+  const closeIconRef = useRef<HTMLDivElement>(null);
   
   // 使用 useEffect 设置图标
   useEffect(() => {
     if (addIconRef.current) {
       setIcon(addIconRef.current, 'plus');
     }
+    if (closeIconRef.current) {
+      setIcon(closeIconRef.current, 'sidebar-left');
+    }
   }, []);
 
-  // 添加新会话按钮
-  const rightActions = (
+  // 把右侧按钮改为左侧按钮
+  const leftActions = (
     <button
-      onClick={onCreateNewSession}
-      style={createIconButtonStyle()}
-      title="创建新会话"
+      onClick={toggleLeftSidebar}
+      style={createIconButtonStyle(leftSidebarVisible)}
+      title="切换左侧边栏"
     >
       <div 
-        ref={addIconRef}
+        ref={closeIconRef}
         style={{ width: '16px', height: '16px' }}
       />
     </button>
@@ -58,7 +66,7 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
     }}>
       <Header
         title="聊天会话"
-        rightActions={rightActions}
+        leftActions={leftActions}  // 改为 leftActions
         className="left-sidebar-header"
       />
       

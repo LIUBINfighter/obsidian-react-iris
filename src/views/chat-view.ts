@@ -140,7 +140,9 @@ export class ChatView extends ItemView {
                         plugin: this.plugin,
                         currentSessionId: this.currentSessionId,
                         onSelectSession: this.handleSelectSession,
-                        onCreateNewSession: this.handleCreateNewSession
+                        onCreateNewSession: this.handleCreateNewSession,
+                        toggleLeftSidebar: this.toggleLeftSidebar,     // 添加这行
+                        leftSidebarVisible: this.leftSidebarVisible    // 添加这行
                     }),
                     
                     // 聊天主界面

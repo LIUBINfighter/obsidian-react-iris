@@ -406,7 +406,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
     plugin.settings.modelName = modelName;
     plugin.saveSettings();
     setSelectedModel(modelName);
-    new Notice(`已切换到模型: ${modelName}`);
+    // new Notice(`已切换到模型: ${modelName}`);
   };
   
   // 处理添加或移除收藏
