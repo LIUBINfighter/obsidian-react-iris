@@ -63,7 +63,13 @@ export const OnlineSettings: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '20px' }}>
+    <div style={{
+      display: 'flex',
+      gap: '20px',
+      flexDirection: window.innerWidth < 1000 ? 'column' : 'row',
+      maxWidth: '100%',
+      overflow: 'auto'
+    }}>
       <OnlineModelList
         models={models}
         onDeleteModel={handleDeleteModel}
