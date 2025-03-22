@@ -20,6 +20,8 @@ data.json
 ./chats/
 /chats/
 favorite.json
+
 /docs/
+
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store

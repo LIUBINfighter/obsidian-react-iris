@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { App, Notice } from 'obsidian';
 import { ChatSession } from '../Chat';
 import { getAllChatSessionIds, loadChatSessionFromFile, saveChatSessionToFile, deleteChatSession } from '../../utils/chatUtils';
+import  DoubleConfirmDelete  from '../common/double';
 
 interface ChatSessionListProps {
   app: App;
@@ -253,27 +254,14 @@ export const ChatSessionList: React.FC<ChatSessionListProps> = ({
                     ✎
                   </button>
                   
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      if (confirm('确定要删除这个会话吗？此操作不可撤销。')) {
-                        handleDeleteSession(session.id);
-                      }
-                    }}
-                    title="删除会话"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: session.id === currentSessionId ? 'var(--text-on-accent)' : 'var(--text-muted)',
-                      cursor: 'pointer',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                    disabled={session.id === currentSessionId}
-                  >
-                    ×
-                  </button>
+                  {session.id !== currentSessionId && (
+                    <div onClick={e => e.stopPropagation()}>
+                      <DoubleConfirmDelete
+                        onDelete={() => handleDeleteSession(session.id)}
+                        size={14}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               

@@ -1,24 +1,22 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { ExampleReactComponent } from '../component/Example';
+// 仅保留设置组件的导入
 import { SettingComponent } from '../component/Setting';
 import ReactIris from '../main';
 
-// 定义选项卡类型
+// 修改选项卡类型
 enum TabType {
-  EXAMPLE = 'example',
-  EDITOR = 'editor',
+  INSTRUCTIONS = 'instructions', // 将EXAMPLE改为INSTRUCTIONS
   SETTINGS = 'settings'
-  // 移除 CHAT 选项卡
 }
 
 // ReadMe视图实现
 export class ReadMeView extends ItemView {
   root: Root | null = null;
-  activeTab: TabType = TabType.EXAMPLE; // 默认显示Example选项卡
+  activeTab: TabType = TabType.INSTRUCTIONS; // 默认显示使用说明选项卡
   reactContainer: HTMLElement | null = null;
-  plugin: ReactIris | null = null; // 添加插件实例引用
+  plugin: ReactIris | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin?: ReactIris) {
     super(leaf);
@@ -32,7 +30,9 @@ export class ReadMeView extends ItemView {
   getDisplayText(): string {
     return "ReadMe & React View";
   }
-
+  getIcon(): string {
+	return 'info';
+  }
   async onOpen() {
     const container = this.containerEl.children[1];
     container.empty();
@@ -48,17 +48,16 @@ export class ReadMeView extends ItemView {
       attr: { style: "margin: var(--size-4-6) 0;" }
     });
     
-    // 创建选项卡按钮
-    const exampleTab = tabsContainer.createEl("button", {
-      text: "组件示例",
-      cls: `tab-button ${this.activeTab === TabType.EXAMPLE ? 'active' : ''}`,
+    // 创建使用说明选项卡按钮
+    const instructionsTab = tabsContainer.createEl("button", {
+      text: "使用说明",
+      cls: `tab-button ${this.activeTab === TabType.INSTRUCTIONS ? 'active' : ''}`,
       attr: {
-        'data-tab': TabType.EXAMPLE,
+        'data-tab': TabType.INSTRUCTIONS,
         'style': 'margin-right: 10px;'
       }
     });
     
-
     // 设置选项卡按钮
     const settingsTab = tabsContainer.createEl("button", {
       text: "设置",
@@ -69,33 +68,28 @@ export class ReadMeView extends ItemView {
       }
     });
     
-    // 移除聊天选项卡按钮
-    
     // 添加选项卡点击事件
-    exampleTab.addEventListener("click", () => {
-      this.setActiveTab(TabType.EXAMPLE);
-      this.updateTabs(exampleTab, [settingsTab]);
-      this.renderReactComponent(container as HTMLElement);
+    instructionsTab.addEventListener("click", () => {
+      this.setActiveTab(TabType.INSTRUCTIONS);
+      this.updateTabs(instructionsTab, [settingsTab]);
+      this.renderContent(container as HTMLElement);
     });
-    
     
     // 设置选项卡点击事件
     settingsTab.addEventListener("click", () => {
       this.setActiveTab(TabType.SETTINGS);
-      this.updateTabs(settingsTab, [exampleTab]);
-      this.renderReactComponent(container as HTMLElement);
+      this.updateTabs(settingsTab, [instructionsTab]);
+      this.renderContent(container as HTMLElement);
     });
     
-    // 移除聊天选项卡点击事件
-    
-    // 创建React部分的容器
-    const reactSection = container.createEl("div", { 
-      cls: "react-section",
+    // 创建内容部分的容器
+    const contentSection = container.createEl("div", { 
+      cls: "content-section",
       attr: { style: "margin-top: 20px;" }
     });
     
-    // 渲染当前选中的React组件
-    this.renderReactComponent(container as HTMLElement);
+    // 渲染当前选中的内容
+    this.renderContent(container as HTMLElement);
   }
   
   // 更新选项卡样式，修改为接受多个非活动选项卡
@@ -109,67 +103,70 @@ export class ReadMeView extends ItemView {
     this.activeTab = tab;
   }
   
-  // 移除聊天相关的方法（toggleSidebar, toggleLeftSidebar, handleAddToInbox, handleSelectSession, handleCreateNewSession）
-  
-  // 根据当前选项卡渲染相应的React组件
-  renderReactComponent(container: Element) {
+  // 重命名方法，从renderReactComponent改为renderContent
+  renderContent(container: Element) {
     // 将Element转换为HTMLElement
     const containerEl = container as HTMLElement;
     
-    // 获取或创建React部分
-    let reactSection = containerEl.querySelector(".react-section");
-    if (!reactSection) {
-      reactSection = containerEl.createEl("div", { 
-        cls: "react-section",
+    // 获取或创建内容部分
+    let contentSection = containerEl.querySelector(".content-section");
+    if (!contentSection) {
+      contentSection = containerEl.createEl("div", { 
+        cls: "content-section",
         attr: { style: "margin-top: 20px;" }
       });
     }
     
     // 清空当前内容
-    reactSection.empty();
+    contentSection.empty();
     
     try {
-      // 显示组件标题
-      let componentTitle = "";
-      
-      switch (this.activeTab) {
-        case TabType.EXAMPLE:
-          componentTitle = "React 组件示例";
-          break;
-        case TabType.SETTINGS:
-          componentTitle = "React 设置组件";
-          break;
-      }
-      
-      const reactHeader = reactSection.createEl("h2", { text: componentTitle });
-      
+	//   无需标题	
       // 卸载现有的React根节点（如果存在）
       if (this.root) {
         this.root.unmount();
         this.root = null;
       }
       
-      // 创建新的React容器
-      this.reactContainer = reactSection.createEl("div", { 
-        cls: "react-container",
-        attr: { 
-          style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
-        }
-      });
-      
-      console.log("React 容器已创建:", this.reactContainer);
-      
-      // 创建新的React根并渲染组件
-      this.root = createRoot(this.reactContainer);
-      console.log("React root 已创建");
-      
-      // 根据当前选项卡渲染不同的组件
-      if (this.activeTab === TabType.EXAMPLE) {
-        this.root.render(
-          React.createElement(ExampleReactComponent, { name: "Obsidian用户" })
-        );
-        console.log("Example组件已渲染");
+      if (this.activeTab === TabType.INSTRUCTIONS) {
+        // 使用说明选项卡，显示纯文本内容而不是React组件
+        const instructionsContainer = contentSection.createEl("div", {
+          cls: "instructions-container",
+          attr: { 
+            style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
+          }
+        });
+        
+        // 添加使用说明内容
+        instructionsContainer.createEl("h3", { text: "欢迎使用 React Iris 插件" });
+        
+        const featuresList = instructionsContainer.createEl("ul");
+        featuresList.createEl("li", { text: "使用侧边栏中的新芽图标或命令面板打开聊天助手" });
+        featuresList.createEl("li", { text: "在聊天界面中与AI进行对话" });
+        featuresList.createEl("li", { text: "可以创建和管理多个对话会话" });
+        featuresList.createEl("li", { text: "支持将重要消息保存到收藏夹" });
+        
+        instructionsContainer.createEl("p", { 
+          text: "在设置选项卡中可以配置AI服务的相关参数，如API密钥、模型名称等。",
+          attr: { style: "margin-top: 15px;" }
+        });
+        
+        console.log("使用说明内容已渲染");
       } else if (this.activeTab === TabType.SETTINGS) {
+        // 创建React容器用于设置组件
+        this.reactContainer = contentSection.createEl("div", { 
+          cls: "react-container",
+          attr: { 
+            style: "padding: 20px; border: 1px solid var(--background-modifier-border); border-radius: 5px; margin-top: 10px;" 
+          }
+        });
+        
+        console.log("React 容器已创建:", this.reactContainer);
+        
+        // 创建新的React根并渲染设置组件
+        this.root = createRoot(this.reactContainer);
+        console.log("React root 已创建");
+        
         // 渲染设置组件
         this.root.render(
           React.createElement(SettingComponent, { 
@@ -179,11 +176,10 @@ export class ReadMeView extends ItemView {
         );
         console.log("Setting组件已渲染");
       }
-      // 移除聊天组件的渲染代码
     } catch (error) {
-      console.error("渲染React组件时出错:", error);
-      reactSection.createEl("div", {
-        text: "React组件加载失败: " + error.message,
+      console.error("渲染内容时出错:", error);
+      contentSection.createEl("div", {
+        text: "内容加载失败: " + error.message,
         attr: { style: "color: red; padding: 20px;" }
       });
     }

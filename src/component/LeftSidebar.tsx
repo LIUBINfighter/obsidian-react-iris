@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { App, setIcon } from 'obsidian';
 import ReactIris from '../main';
 import { ChatSessionList } from './sidebar/ChatSessionList';
 import { Header, createIconButtonStyle } from './common/Header';
+import { EmptyTab } from './sidebar/EmptyTab';  // 添加这行导入语句
 
 interface LeftSidebarProps {
   app: App;
@@ -11,6 +12,8 @@ interface LeftSidebarProps {
   currentSessionId: string;
   onSelectSession: (sessionId: string) => void;
   onCreateNewSession: () => void;
+  toggleLeftSidebar: () => void;
+  leftSidebarVisible: boolean;
 }
 
 export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({ 
@@ -19,29 +22,71 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
   plugin,
   currentSessionId,
   onSelectSession,
-  onCreateNewSession
+  onCreateNewSession,
+  toggleLeftSidebar,
+  leftSidebarVisible
 }) => {
+  const [activeTab, setActiveTab] = useState<'sessions' | 'empty'>('sessions');
   const addIconRef = useRef<HTMLDivElement>(null);
+  const closeIconRef = useRef<HTMLDivElement>(null);
   
-  // 使用 useEffect 设置图标
   useEffect(() => {
     if (addIconRef.current) {
       setIcon(addIconRef.current, 'plus');
     }
+    if (closeIconRef.current) {
+      setIcon(closeIconRef.current, 'sidebar-left');
+    }
   }, []);
 
-  // 添加新会话按钮
-  const rightActions = (
+  const leftActions = (
     <button
-      onClick={onCreateNewSession}
-      style={createIconButtonStyle()}
-      title="创建新会话"
+      onClick={toggleLeftSidebar}
+      style={createIconButtonStyle(leftSidebarVisible)}
+      title="切换左侧边栏"
     >
       <div 
-        ref={addIconRef}
+        ref={closeIconRef}
         style={{ width: '16px', height: '16px' }}
       />
     </button>
+  );
+
+  const renderTabHeader = () => (
+    <div style={{
+      display: 'flex',
+      borderBottom: '1px solid var(--background-modifier-border)',
+    //   marginBottom: '8px',
+      backgroundColor: 'var(--background-secondary-alt)', // 添加这行
+      padding: '0 8px' // 添加这行
+    }}>
+      <button
+        onClick={() => setActiveTab('sessions')}
+        style={{
+          padding: '8px 16px',
+          background: 'none',
+          border: 'none',
+          borderBottom: `2px solid ${activeTab === 'sessions' ? 'var(--interactive-accent)' : 'transparent'}`,
+          color: activeTab === 'sessions' ? 'var(--text-normal)' : 'var(--text-muted)',
+          cursor: 'pointer'
+        }}
+      >
+        会话
+      </button>
+      <button
+        onClick={() => setActiveTab('empty')}
+        style={{
+          padding: '8px 16px',
+          background: 'none',
+          border: 'none',
+          borderBottom: `2px solid ${activeTab === 'empty' ? 'var(--interactive-accent)' : 'transparent'}`,
+          color: activeTab === 'empty' ? 'var(--text-normal)' : 'var(--text-muted)',
+          cursor: 'pointer'
+        }}
+      >
+        空白页
+      </button>
+    </div>
   );
 
   if (!visible) return null;
@@ -57,23 +102,27 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
       transition: 'width 0.3s ease'
     }}>
       <Header
-        title="聊天会话"
-        rightActions={rightActions}
+        leftActions={leftActions}
         className="left-sidebar-header"
       />
+      
+      {renderTabHeader()}
       
       <div className="left-sidebar-content" style={{
         flex: 1,
         overflowY: 'auto',
         padding: '16px'
       }}>
-        {/* 会话列表组件 */}
-        <ChatSessionList 
-          app={app}
-          currentSessionId={currentSessionId}
-          onSelectSession={onSelectSession}
-          onCreateNewSession={onCreateNewSession}
-        />
+        {activeTab === 'sessions' ? (
+          <ChatSessionList 
+            app={app}
+            currentSessionId={currentSessionId}
+            onSelectSession={onSelectSession}
+            onCreateNewSession={onCreateNewSession}
+          />
+        ) : (
+          <EmptyTab app={app} />
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,46 @@
-import { AIService, AIServiceOptions, AIRequestOptions, AIResponseStream } from './AIService';
+import { Message } from '../component/Chat';
+import { estimateTokenCount } from '../utils/tokenUtils';
+
+export interface AIServiceOptions {
+  baseUrl: string;
+  modelName: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  [key: string]: any; // 允许额外的配置选项
+}
+
+export interface AIRequestOptions {
+  messages: Message[];
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  [key: string]: any; // 允许额外的请求选项
+}
+
+export interface AIResponseStream {
+  content: string;
+  isComplete: boolean;
+  responseTime: number;
+  tokenCount: number;
+}
+
+/**
+ * AI服务接口 - 定义所有AI服务应该实现的方法
+ */
+export interface AIService {
+  // 发送请求并获取完整响应
+  sendRequest(options: AIRequestOptions): Promise<Message>;
+  
+  // 发送请求并获取流式响应
+  sendStreamingRequest(
+    options: AIRequestOptions, 
+    onUpdate: (response: AIResponseStream) => void
+  ): Promise<void>;
+  
+  // 取消正在进行的请求
+  cancelRequest(): void;
+}
 import { Message } from '../component/Chat';
 
 export interface OllamaOptions extends AIServiceOptions {
@@ -152,7 +194,12 @@ export class OllamaService implements AIService {
       
       const emitComplete = () => {
         if (!isCompleteEmitted) {
-          onUpdate({ content, isComplete: true });
+          onUpdate({ 
+        content,
+        isComplete: true,
+        responseTime: Date.now() - startTime,
+        tokenCount: estimateTokenCount(content)
+      });
           isCompleteEmitted = true;
         }
       };
@@ -173,8 +220,15 @@ export class OllamaService implements AIService {
             const data = JSON.parse(line);
             
             if (data.message?.content) {
+              const responseTime = Date.now() - startTime;
+              const tokenCount = estimateTokenCount(content + data.message.content);
               content += data.message.content;
-              onUpdate({ content, isComplete: false });
+              onUpdate({ 
+                content,
+                isComplete: false,
+                responseTime,
+                tokenCount 
+              });
             }
             
             if (data.done === true) {

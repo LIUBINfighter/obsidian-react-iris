@@ -20,6 +20,8 @@ export interface AIRequestOptions {
 export interface AIResponseStream {
   content: string;
   isComplete: boolean;
+  responseTime: number;
+  tokenCount: number;
 }
 
 /**

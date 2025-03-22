@@ -5,6 +5,7 @@ import { exportMessagesToMarkdown, generateSingleMessageMarkdown } from '../../u
 import { FavoriteItem } from '../../utils/favoriteUtils';
 import { Header } from '../common/Header';
 import { ExportModal, ExportOptions } from '../modal/ExportModal';
+import  DoubleConfirmDelete  from '../common/double';
 
 interface InboxProps {
   messages: FavoriteItem[];
@@ -331,26 +332,10 @@ export const InboxComponent: React.FC<InboxProps> = ({
                         {isCollapsed ? '展开 ▼' : '折叠 ▲'}
                       </button>
                     )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(message.id);
-                      }}
-                      aria-label="删除收藏"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        marginLeft: '4px',
-                        marginRight: '-8px',
-                        fontSize: '14px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      ✕
-                    </button>
+                    <DoubleConfirmDelete 
+                      onDelete={() => onRemove(message.id)}
+                      size={16}
+                    />
                   </div>
                 </div>
                 <div style={{

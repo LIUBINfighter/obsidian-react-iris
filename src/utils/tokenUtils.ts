@@ -4,11 +4,9 @@
  * @returns 格式化后的字符串
  */
 export function formatResponseTime(ms: number): string {
-  if (ms < 1000) {
-    return `${ms}ms`;
-  } else {
-    return `${(ms / 1000).toFixed(2)}s`;
-  }
+  if (ms <= 0) return '0ms';
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1).replace(/\.0$/, '')}s`;
 }
 
 /**
@@ -16,12 +14,21 @@ export function formatResponseTime(ms: number): string {
  * @param text 文本内容
  * @returns 估算的token数量
  */
-export function estimateTokenCount(text: string): number {
-  // 这是一个简单的估算，实际token计数取决于模型和分词器
-  // GPT模型平均每4个字符约为1个token
-  const chars = text.trim().length;
-  const estimatedTokens = Math.ceil(chars / 4);
-  return estimatedTokens;
+export function estimateTokenCount(text: string, model: string = 'gpt-3.5'): number {
+  // 多模型适配的token估算
+  if (model.startsWith('gpt')) {
+    try {
+      const { encode } = require('gpt-tokenizer');
+      return encode(text).length;
+    } catch {
+      // fallback到改进版估算
+      const wordCount = text.trim().split(/\s+/).length;
+      const charCount = text.trim().length;
+      return Math.floor(wordCount * 0.8 + charCount * 0.2);
+    }
+  }
+  // 原有算法作为fallback
+  return Math.ceil(text.trim().length / 4);
 }
 
 /**

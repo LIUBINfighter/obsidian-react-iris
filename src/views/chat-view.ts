@@ -27,7 +27,7 @@ export class ChatView extends ItemView {
     }
 
     getDisplayText(): string {
-        return '聊天助手';
+        return 'Iris Chatbox';
     }
 
     getIcon(): string {
@@ -79,6 +79,11 @@ export class ChatView extends ItemView {
         this.currentSessionId = newSessionId;
         // 重新渲染组件以反映会话变化
         this.renderReactComponent();
+    }
+
+    // 添加打开readme视图的方法
+    handleOpenReadme = () => {
+        this.plugin.activateReadMeView();
     }
 
     async onOpen(): Promise<void> {
@@ -140,7 +145,9 @@ export class ChatView extends ItemView {
                         plugin: this.plugin,
                         currentSessionId: this.currentSessionId,
                         onSelectSession: this.handleSelectSession,
-                        onCreateNewSession: this.handleCreateNewSession
+                        onCreateNewSession: this.handleCreateNewSession,
+                        toggleLeftSidebar: this.toggleLeftSidebar,     // 添加这行
+                        leftSidebarVisible: this.leftSidebarVisible    // 添加这行
                     }),
                     
                     // 聊天主界面
@@ -160,7 +167,8 @@ export class ChatView extends ItemView {
                             leftSidebarVisible: this.leftSidebarVisible,
                             toggleLeftSidebar: this.toggleLeftSidebar,
                             plugin: this.plugin,
-                            sessionId: this.currentSessionId // 传递当前会话ID
+                            sessionId: this.currentSessionId,
+                            onOpenReadme: this.handleOpenReadme // 添加这行
                         })
                     ),
                     
@@ -169,6 +177,8 @@ export class ChatView extends ItemView {
                         key: 'chat-sidebar',
                         app: this.app,
                         visible: this.sidebarVisible,
+                        toggleSidebar: this.toggleSidebar,     // 添加这行
+                        sidebarVisible: this.sidebarVisible,   // 添加这行
                         ref: this.sidebarRef,
                         plugin: this.plugin
                     })

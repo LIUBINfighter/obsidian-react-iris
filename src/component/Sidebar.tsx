@@ -1,6 +1,7 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { App } from 'obsidian';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import { App, setIcon } from 'obsidian';
 import { InboxComponent } from './sidebar/Inbox';
+import { EmptyTab } from './sidebar/EmptyTab';
 import { Message } from './Chat';
 import ReactIris from '../main';
 import { 
@@ -12,24 +13,32 @@ import {
   FavoriteItem,
   migrateFromLocalStorage 
 } from '../utils/favoriteUtils';
+import { Header, createIconButtonStyle } from './common/Header';
 
 interface SidebarProps {
   app: App;
   visible: boolean;
   plugin?: ReactIris;
+  toggleSidebar: () => void;  // 替换 onClose 为 toggleSidebar
+  sidebarVisible: boolean;    // 添加可见状态
 }
 
-// 更新forwardRef类型，增加切换折叠状态方法
 export const SidebarComponent = forwardRef<{
   addToFavorites: (message: Message, sessionId?: string) => void, 
   removeFromFavorites: (messageId: string) => void
 }, SidebarProps>(
-  ({ app, visible, plugin }, ref) => {
+  ({ app, visible, plugin, toggleSidebar, sidebarVisible }, ref) => {
+    const [activeTab, setActiveTab] = useState<'inbox' | 'empty'>('inbox');
     const [favoriteMessages, setFavoriteMessages] = useState<FavoriteItem[]>([]);
+    const closeIconRef = useRef<HTMLDivElement>(null);
     
-    // 从文件加载收藏消息
     useEffect(() => {
-      // 迁移旧数据并加载新数据
+      if (closeIconRef.current) {
+        setIcon(closeIconRef.current, 'sidebar-right'); // 改为使用侧边栏图标
+      }
+    }, []);
+
+    useEffect(() => {
       const initializeFavorites = async () => {
         await migrateFromLocalStorage(app);
         const favorites = await loadFavorites(app);
@@ -39,7 +48,6 @@ export const SidebarComponent = forwardRef<{
       initializeFavorites();
     }, [app]);
     
-    // 添加消息到收藏
     const handleAddToFavorites = async (message: Message, sessionId?: string) => {
       try {
         const updatedFavorites = await addToFavorites(app, message, sessionId);
@@ -49,7 +57,6 @@ export const SidebarComponent = forwardRef<{
       }
     };
     
-    // 从收藏中移除消息
     const handleRemoveFromFavorites = async (messageId: string) => {
       try {
         const updatedFavorites = await removeFromFavorites(app, messageId);
@@ -59,7 +66,6 @@ export const SidebarComponent = forwardRef<{
       }
     };
     
-    // 切换消息折叠状态
     const handleToggleFold = async (messageId: string, folded: boolean) => {
       try {
         const updatedFavorites = await updateFoldState(app, messageId, folded);
@@ -69,11 +75,48 @@ export const SidebarComponent = forwardRef<{
       }
     };
 
-    // 暴露方法给父组件
     useImperativeHandle(ref, () => ({
       addToFavorites: handleAddToFavorites,
       removeFromFavorites: handleRemoveFromFavorites
     }), [app]);
+
+    // 添加选项卡头部渲染函数
+    const renderTabHeader = () => (
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid var(--background-modifier-border)',
+        // marginBottom: '8px', // 移除这行  // 这里控制选项卡与下面内容的间距
+        backgroundColor: 'var(--background-secondary-alt)',
+        padding: '0 8px'
+      }}>
+        <button
+          onClick={() => setActiveTab('inbox')}
+          style={{
+            padding: '0px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: `2px solid ${activeTab === 'inbox' ? 'var(--interactive-accent)' : 'transparent'}`,
+            color: activeTab === 'inbox' ? 'var(--text-normal)' : 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          收藏夹
+        </button>
+        <button
+          onClick={() => setActiveTab('empty')}
+          style={{
+            padding: '0px 16px',
+            background: 'none',
+            border: 'none',
+            borderBottom: `2px solid ${activeTab === 'empty' ? 'var(--interactive-accent)' : 'transparent'}`,
+            color: activeTab === 'empty' ? 'var(--text-normal)' : 'var(--text-muted)',
+            cursor: 'pointer'
+          }}
+        >
+          空白页
+        </button>
+      </div>
+    );
 
     if (!visible) return null;
     
@@ -87,13 +130,36 @@ export const SidebarComponent = forwardRef<{
         flexDirection: 'column',
         transition: 'width 0.3s ease'
       }}>
-        <InboxComponent 
-          messages={favoriteMessages} 
-          onRemove={handleRemoveFromFavorites}
-          onToggleFold={handleToggleFold}
-          app={app}
-          plugin={plugin}
+        <Header
+          title=""
+          rightActions={
+            <button
+              onClick={toggleSidebar}
+              style={createIconButtonStyle(sidebarVisible)}
+              title="切换右侧边栏"
+            >
+              <div 
+                ref={closeIconRef}
+                style={{ width: '16px', height: '16px' }}
+              />
+            </button>
+          }
+          className="sidebar-header"
         />
+        
+        {renderTabHeader()}
+        
+        {activeTab === 'inbox' ? (
+          <InboxComponent 
+            messages={favoriteMessages} 
+            onRemove={handleRemoveFromFavorites}
+            onToggleFold={handleToggleFold}
+            app={app}
+            plugin={plugin}
+          />
+        ) : (
+          <EmptyTab app={app} />
+        )}
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { App, TFile, normalizePath } from 'obsidian';
+import { App, TFile, normalizePath, Notice } from 'obsidian';
 import { Message } from '../component/Chat';
 import { FavoriteItem } from './favoriteUtils';
 import { ExportOptions } from '../component/modal/ExportModal';
@@ -193,6 +193,107 @@ ${message.responsetime ? `response_time: ${message.responsetime}ms` : ''}
   
   // 添加消息内容，保持原始格式，不添加任何标记
   markdown += `${message.content.trim()}\n`;
+  
+  return markdown;
+}
+
+/**
+ * 将消息导出到Obsidian笔记
+ */
+export async function exportMessageToNote(
+  app: App,
+  message: Message,
+  folderPath: string = '/inbox', // 默认导出到inbox文件夹
+  includeTimestamp: boolean = true
+): Promise<TFile | null> {
+  try {
+    // 确保目标文件夹存在
+    await ensureFolderExists(app, folderPath);
+    
+    // 从消息内容中提取标题（使用第一行或前30个字符）
+    const title = extractTitle(message.content);
+    
+    // 创建文件名（使用标题并添加时间戳以避免重复）
+    const timestamp = includeTimestamp 
+      ? `-${new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)}` 
+      : '';
+    const fileName = `${title}${timestamp}.md`;
+    const filePath = `${folderPath}/${fileName}`;
+    
+    // 准备笔记内容
+    let noteContent = message.content;
+    
+    // 如果需要，添加元数据
+    if (includeTimestamp) {
+      const metadata = [
+        '---',
+        `created: ${new Date(message.timestamp).toISOString()}`,
+        `source: AI Chat`,
+        '---',
+        '',
+        noteContent
+      ].join('\n');
+      
+      noteContent = metadata;
+    }
+    
+    // 创建或更新文件
+    const file = await app.vault.create(filePath, noteContent);
+    new Notice(`已创建笔记: ${fileName}`);
+    return file;
+    
+  } catch (error) {
+    console.error('导出笔记失败:', error);
+    new Notice(`导出失败: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * 从内容中提取标题
+ */
+function extractTitle(content: string): string {
+  // 使用第一行作为标题，或提取前30个字符
+  const firstLine = content.split('\n')[0].trim();
+  
+  // 移除Markdown标记
+  let title = firstLine.replace(/^#+\s+/, '').replace(/[*_`]/g, '');
+  
+  // 如果标题太长，截断它
+  if (title.length > 30) {
+    title = title.substring(0, 30) + '...';
+  }
+  
+  // 移除不允许作为文件名的字符
+  return title.replace(/[\\/:*?"<>|]/g, '-');
+}
+
+/**
+ * 打开刚创建的笔记
+ */
+export async function openNote(app: App, file: TFile): Promise<void> {
+  await app.workspace.getLeaf(false).openFile(file);
+}
+
+interface ExportOptions {
+  title: string;
+  tags: string[];
+}
+
+export function generateMarkdownContent(messages: Message[], options: ExportOptions): string {
+  const { title, tags } = options;
+  const tagString = tags.join(' ');
+  
+  let markdown = `# ${title}\n`;
+  if (tagString) {
+    markdown += `tags: ${tagString}\n\n`;
+  }
+  
+  messages.forEach(msg => {
+    const prefix = msg.sender === 'user' ? 'User' : 'Assistant';
+    markdown += `> [!cite]+ ${prefix}\n`;
+    markdown += `> ${msg.content.replace(/\n/g, '\n> ')}\n\n`;
+  });
   
   return markdown;
 }

@@ -13,6 +13,17 @@ interface ReactIrisSettings {
 	temperature: number;
 	serviceType: AIServiceType;
 	defaultExportFolder: string; // 添加默认导出文件夹设置
+	aiService?: {
+		type: AIServiceType;
+		baseUrl: string;
+		modelName: string;
+		systemPrompt?: string;
+		temperature?: number;
+		maxTokens?: number;
+	};
+	// 多模态支持设置
+	multimodalEnabled?: boolean;
+	multimodalModel?: string;
 }
 
 const DEFAULT_SETTINGS: ReactIrisSettings = {
@@ -21,7 +32,7 @@ const DEFAULT_SETTINGS: ReactIrisSettings = {
 	baseUrl: 'http://localhost:11434',
 	modelName: 'gemma:2b',
 	temperature: 0.7,
-	serviceType: 'langchain',
+	serviceType: 'ollama',
 	defaultExportFolder: '/inbox' // 默认导出到 inbox 文件夹
 }
 
@@ -163,10 +174,5 @@ export default class ReactIris extends Plugin {
 				leaf.view.onOpen();
 			}
 		}, 100);
-	}
-
-	// 获取AI服务配置
-	getAIServiceConfig() {
-		return this.settings.aiService;
 	}
 }
