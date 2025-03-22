@@ -47,7 +47,7 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
     <div className="setting-component" style={{ 
       padding: '16px',
       backgroundColor: 'var(--background-primary)',
-      borderRadius: '5px'
+      borderRadius: '4px'
     }}>
       <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--background-modifier-border)' }}>
 	  <button 

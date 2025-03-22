@@ -243,7 +243,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             height: '10px',
             border: '2px solid var(--text-accent)',
             borderBottomColor: 'transparent',
-            borderRadius: '50%',
+            borderRadius: '4px',
             animation: 'spin 1s linear infinite'
           }}></span>
           <style>{`
@@ -348,7 +348,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             backgroundColor: serviceStatus === 'ready' ? 'var(--text-success)' : 
                            serviceStatus === 'testing' ? 'var(--text-warning)' : 
                            'var(--text-error)',
-            borderRadius: '50%',
+            borderRadius: '4px',
             transition: 'background-color 0.3s ease'
           }}></span>
         </>

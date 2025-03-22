@@ -10,7 +10,7 @@ export const Introduction: React.FC<IntroductionProps> = ({ app, plugin }) => {
     <div className="instructions-container" style={{ 
       padding: '20px', 
       border: '1px solid var(--background-modifier-border)',
-      borderRadius: '5px',
+      borderRadius: '4px',
       marginTop: '10px'
     }}>
       <h3>欢迎使用 React Iris 插件</h3>
