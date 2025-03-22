@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { OllamaService, OllamaModel, PullProgressResponse, RunningModel, GenerateResponse } from '../../services/ollama/OllamaService';
+import WipComponent from '../WipComponent';
 
 // 导入Electron相关API
 declare const window: Window & {
@@ -999,145 +1000,8 @@ export function OllamaSettings() {
           {"}"}'
         </div>
       </div>
-
-      {/* 文本生成 */}
-      <div style={styles.commandSection}>
-        <h3 style={styles.heading}>文本生成</h3>
-        <div style={{marginBottom: '10px'}}>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            style={{
-              ...styles.input,
-              marginBottom: '10px',
-              width: '100%'
-            }}
-          >
-            <option value="">选择模型</option>
-            {models.map(model => (
-              <option key={model.digest} value={`${model.name}:${model.tag}`}>
-                {formatModelName(model.name, model.tag)}
-              </option>
-            ))}
-          </select>
-          
-          <textarea
-            placeholder="输入提示词"
-            value={generatePrompt}
-            onChange={(e) => setGeneratePrompt(e.target.value)}
-            style={{
-              ...styles.input,
-              height: '100px',
-              width: '100%',
-              marginBottom: '10px'
-            }}
-          />
-          
-          <button
-            onClick={handleGenerate}
-            disabled={!selectedModel || !generatePrompt || generateLoading}
-            style={{
-              ...styles.button,
-              ...(!selectedModel || !generatePrompt || generateLoading ? styles.buttonDisabled : {})
-            }}
-          >
-            {generateLoading ? '生成中...' : '生成文本'}
-          </button>
-        </div>
-        
-        <div style={styles.commandText}>
-          命令: curl http://localhost:11434/api/generate -d '{"{"}
-            "model": "{selectedModel || "model-name"}",
-            "prompt": "{generatePrompt ? generatePrompt.substring(0, 20) + '...' : "your prompt"}",
-            "stream": false
-          {"}"}'
-        </div>
-        
-        {generateResponse && (
-          <div style={{
-            padding: '10px',
-            backgroundColor: 'var(--background-secondary)',
-            borderRadius: '4px',
-            marginTop: '10px',
-            whiteSpace: 'pre-wrap'
-          }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>生成结果:</div>
-            {generateResponse}
-          </div>
-        )}
-      </div>
-      
-      {/* 嵌入向量生成 */}
-      <div style={styles.commandSection}>
-        <h3 style={styles.heading}>生成嵌入向量</h3>
-        <div style={{marginBottom: '10px'}}>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            style={{
-              ...styles.input,
-              marginBottom: '10px',
-              width: '100%'
-            }}
-            disabled={embedLoading}
-          >
-            <option value="">选择模型</option>
-            {models.map(model => (
-              <option key={model.digest} value={`${model.name}:${model.tag}`}>
-                {formatModelName(model.name, model.tag)}
-              </option>
-            ))}
-          </select>
-          
-          <textarea
-            placeholder="输入文本"
-            value={embedInput}
-            onChange={(e) => setEmbedInput(e.target.value)}
-            style={{
-              ...styles.input,
-              height: '100px',
-              width: '100%',
-              marginBottom: '10px'
-            }}
-            disabled={embedLoading}
-          />
-          
-          <button
-            onClick={handleGenerateEmbeddings}
-            disabled={!selectedModel || !embedInput || embedLoading}
-            style={{
-              ...styles.button,
-              ...(!selectedModel || !embedInput || embedLoading ? styles.buttonDisabled : {})
-            }}
-          >
-            {embedLoading ? '生成中...' : '生成嵌入向量'}
-          </button>
-        </div>
-        
-        <div style={styles.commandText}>
-          命令: curl http://localhost:11434/api/embed -d '{"{"}
-            "model": "{selectedModel || "model-name"}",
-            "input": "{embedInput ? embedInput.substring(0, 20) + '...' : "your text"}"
-          {"}"}'
-        </div>
-        
-        {embedResponse && (
-          <div style={{
-            padding: '10px',
-            backgroundColor: 'var(--background-secondary)',
-            borderRadius: '4px',
-            marginTop: '10px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            whiteSpace: 'pre-wrap',
-            overflow: 'auto',
-            maxHeight: '200px'
-          }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>嵌入向量 (前10个元素):</div>
-            {embedResponse}
-          </div>
-        )}
-      </div>
+	{/* WIP - 测试功能区域 */}
+	<WipComponent/>
 
       {/* Chat API 测试区域 */}
       <div style={styles.commandSection}>

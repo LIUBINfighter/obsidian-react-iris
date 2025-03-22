@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LMStudioService } from '../../services/lmstudio/LMStudioService';
-
+import WipComponent from '../WipComponent';
 export function LMStudioRestSettings() {
   const [baseUrl, setBaseUrl] = useState<string>('http://127.0.0.1:1234');
   const [apiKey, setApiKey] = useState<string>('');
@@ -30,18 +30,7 @@ export function LMStudioRestSettings() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <div style={{ 
-        backgroundColor: 'var(--background-modifier-border)', 
-        padding: '8px 16px',
-        borderRadius: '4px',
-        marginBottom: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        <span>Beta</span>
-        <span>此功能目前处于测试阶段，可能存在不稳定性</span>
-      </div>
+      <WipComponent />
 
       <div style={{ marginBottom: '20px' }}>
         <div style={{ marginBottom: '8px' }}>基础URL</div>

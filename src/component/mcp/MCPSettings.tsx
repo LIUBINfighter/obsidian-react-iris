@@ -1,21 +1,10 @@
 import React from 'react';
-
+import WipComponent from '../WipComponent';
 export const MCPSettings: React.FC = () => {
   return (
 	
     <div style={{ padding: '16px' }}>
-      <div style={{ 
-        backgroundColor: 'var(--background-modifier-border)', 
-        padding: '8px 16px',
-        borderRadius: '4px',
-        marginBottom: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        <span>Beta</span>
-        <span>此功能目前处于测试阶段，可能存在不稳定性</span>
-      </div>
+      <WipComponent />
       <div style={{ marginBottom: '24px' }}>
         <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-normal)' }}>基本设置</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

@@ -3,6 +3,7 @@ import { OnlineModelList } from './OnlineModelList';
 import { OnlineModelForm } from './OnlineModelForm';
 import { debounce } from '../../utils/debounceUtils';
 import ReactIris from '../../main';
+import WipComponent from 'component/WipComponent';
 
 export interface OnlineModel {
   provider: string;
@@ -89,6 +90,8 @@ export const OnlineSettings: React.FC<OnlineSettingsProps> = ({ plugin }) => {
   };
 
   return (
+	<>
+	<WipComponent/>
     <div style={{
       display: 'flex',
       gap: '20px',
@@ -106,5 +109,6 @@ export const OnlineSettings: React.FC<OnlineSettingsProps> = ({ plugin }) => {
         editingModel={editingModel}
       />
     </div>
+	</>
   );
 };
