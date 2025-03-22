@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LMStudioService, LMStudioModel } from '../../services/LMStudioService';
+import { LMStudioService, LMStudioModel } from '../../services/lmstudio/LMStudioService';
 
 // 导入Electron相关API用于执行命令
 declare const window: Window & {

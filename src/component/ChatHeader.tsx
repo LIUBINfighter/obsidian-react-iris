@@ -1,11 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { App, TFile } from 'obsidian';
-import { LMStudioService, LMStudioModel } from '../services/LMStudioService';
+import { LMStudioService, LMStudioModel } from '../services/lmstudio/LMStudioService';
 import { setIcon } from 'obsidian';
 import { AIServiceType } from '../services/AIServiceFactory';
 import { Header, createIconButtonStyle } from './common/Header';
 import ReactIris from '../main';
-import { OllamaService, OllamaModel } from '../services/OllamaService';
+import { OllamaService, OllamaModel } from '../services/ollama/OllamaService';
 
 interface ChatHeaderProps {
   title: string;

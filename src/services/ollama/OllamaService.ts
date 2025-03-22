@@ -1,5 +1,5 @@
-import { Message } from '../component/Chat';
-import { estimateTokenCount } from '../utils/tokenUtils';
+import { Message } from '../../component/Chat';
+import { estimateTokenCount } from '../../utils/tokenUtils';
 
 export interface AIServiceOptions {
   baseUrl: string;
@@ -50,7 +50,7 @@ export interface AIService {
   // 取消正在进行的请求
   cancelRequest(): void;
 }
-import { Message } from '../component/Chat';
+import { Message } from '../../component/Chat';
 
 export interface OllamaOptions extends AIServiceOptions {
   keepAlive?: string;

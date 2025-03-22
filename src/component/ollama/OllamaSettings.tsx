@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OllamaService, OllamaModel, PullProgressResponse, RunningModel, GenerateResponse } from '../../services/OllamaService';
+import { OllamaService, OllamaModel, PullProgressResponse, RunningModel, GenerateResponse } from '../../services/ollama/OllamaService';
 
 // 导入Electron相关API
 declare const window: Window & {

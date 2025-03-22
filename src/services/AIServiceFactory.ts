@@ -1,7 +1,7 @@
 import { AIService, AIServiceOptions } from './AIService';
-import { OllamaService, OllamaOptions } from './OllamaService';
+import { OllamaService, OllamaOptions } from './ollama/OllamaService';
 import { MockAIService } from './MockAIService';
-import { LMStudioService } from './LMStudioService';
+import { LMStudioService } from './lmstudio/LMStudioService';
 
 export type AIServiceType = 'ollama' | 'mock' | 'lmstudio';
 

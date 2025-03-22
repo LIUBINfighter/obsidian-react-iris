@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LMStudioService } from '../../services/LMStudioService';
+import { LMStudioService } from '../../services/lmstudio/LMStudioService';
 
 export function LMStudioRestSettings() {
   const [baseUrl, setBaseUrl] = useState<string>('http://127.0.0.1:1234');

@@ -6,7 +6,7 @@ import { AIServiceFactory } from '../services/AIServiceFactory';
 import { MessageBubble } from './chat-block/MessageBubble';
 import { ChatInput } from './ChatInput';
 import { ChatHeader } from './ChatHeader';
-import { OllamaModel, OllamaService } from '../services/OllamaService';
+import { OllamaModel, OllamaService } from '../services/ollama/OllamaService';
 
 export interface Message {
   id: string;
