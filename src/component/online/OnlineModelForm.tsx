@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { OnlineModel } from './OnlineSettings';
+import { parseModelJson } from '../../utils/modelImportUtils';
 
 interface OnlineModelFormProps {
   onAddModel: (model: OnlineModel) => void;
@@ -43,7 +44,45 @@ export const OnlineModelForm: React.FC<OnlineModelFormProps> = ({ onAddModel, ed
 
   return (
     <div style={{ flex: 1, padding: '16px', backgroundColor: 'var(--background-secondary)', borderRadius: '5px' }}>
-      <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-normal)' }}>{editingModel ? '编辑模型' : '添加新模型'}</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 style={{ margin: 0, color: 'var(--text-normal)' }}>{editingModel ? '编辑模型' : '添加新模型'}</h3>
+        <input
+          type="file"
+          accept=".json"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = async (event) => {
+                const content = event.target?.result as string;
+                const result = parseModelJson(content);
+                if (result.success && result.models) {
+                  result.models.forEach(model => onAddModel(model));
+                }
+              };
+              reader.readAsText(file);
+            }
+          }}
+          style={{
+            display: 'none'
+          }}
+          id="modelImportInput"
+        />
+        <button
+          onClick={() => document.getElementById('modelImportInput')?.click()}
+          style={{
+            padding: '4px 8px',
+            backgroundColor: 'var(--interactive-accent)',
+            color: 'var(--text-on-accent)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px'
+          }}
+        >
+          批量导入
+        </button>
+      </div>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '4px', color: 'var(--text-normal)' }}>提供商</label>
