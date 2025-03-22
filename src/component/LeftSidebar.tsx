@@ -56,7 +56,7 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
     <div style={{
       display: 'flex',
       borderBottom: '1px solid var(--background-modifier-border)',
-      marginBottom: '8px',
+    //   marginBottom: '8px',
       backgroundColor: 'var(--background-secondary-alt)', // 添加这行
       padding: '0 8px' // 添加这行
     }}>
