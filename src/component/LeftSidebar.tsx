@@ -65,7 +65,7 @@ export const LeftSidebarComponent: React.FC<LeftSidebarProps> = ({
       transition: 'width 0.3s ease'
     }}>
       <Header
-        title="聊天会话"
+        // title="聊天会话"
         leftActions={leftActions}  // 改为 leftActions
         className="left-sidebar-header"
       />

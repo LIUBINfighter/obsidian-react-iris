@@ -472,7 +472,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
     }}>
       {/* 聊天头部 */}
       <ChatHeader 
-        title="聊天会话"
+        // title="聊天会话"
         serviceType={serviceType}
         leftSidebarVisible={leftSidebarVisible}
         sidebarVisible={sidebarVisible}

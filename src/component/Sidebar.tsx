@@ -91,7 +91,7 @@ export const SidebarComponent = forwardRef<{
         transition: 'width 0.3s ease'
       }}>
         <Header
-          title="收藏夹"
+        //   title="收藏夹"
           rightActions={
             <button
               onClick={toggleSidebar}
