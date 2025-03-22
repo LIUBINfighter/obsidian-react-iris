@@ -34,6 +34,17 @@ export function OllamaSettings() {
   const [modelDestination, setModelDestination] = useState<string>('');
   const [modelDetailVisible, setModelDetailVisible] = useState<boolean>(false);
 
+  // 添加Chat API测试状态
+  const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [chatInput, setChatInput] = useState<string>('');
+  const [systemMessage, setSystemMessage] = useState<string>('');
+  const [chatResponse, setChatResponse] = useState<string>('');
+  const [chatLoading, setChatLoading] = useState<boolean>(false);
+  const [streamingEnabled, setStreamingEnabled] = useState<boolean>(true);
+  const [useJsonFormat, setUseJsonFormat] = useState<boolean>(false);
+  const [useTools, setUseTools] = useState<boolean>(false);
+  const [chatFullResponse, setChatFullResponse] = useState<any>(null);
+
   const ollamaService = new OllamaService({ baseUrl: 'http://localhost:11434', modelName: '' });
 
   // 测试ollama连接
@@ -253,6 +264,124 @@ export function OllamaSettings() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 处理聊天发送
+  const handleSendChat = async () => {
+    if (!selectedModel || !chatInput) return;
+    
+    setChatLoading(true);
+    setChatResponse('');
+    setError(null);
+    
+    // 添加用户消息到聊天历史
+    const newMessages = [
+      ...chatMessages,
+      { role: 'user', content: chatInput }
+    ];
+    setChatMessages(newMessages);
+    
+    try {
+      // 准备工具定义
+      const tools = useTools ? [
+        {
+          type: "function",
+          function: {
+            name: "get_weather",
+            description: "获取特定位置的天气信息",
+            parameters: {
+              type: "object",
+              properties: {
+                location: {
+                  type: "string",
+                  description: "城市名称，如 北京、上海、广州"
+                },
+                unit: {
+                  type: "string",
+                  enum: ["celsius", "fahrenheit"],
+                  description: "温度单位"
+                }
+              },
+              required: ["location"]
+            }
+          }
+        }
+      ] : undefined;
+      
+      // 准备格式化选项
+      const format = useJsonFormat ? "json" : undefined;
+      
+      // 准备消息，包括可能的系统消息
+      const messages = systemMessage 
+        ? [{ role: 'system', content: systemMessage }, ...newMessages] 
+        : newMessages;
+      
+      if (streamingEnabled) {
+        // 流式响应
+        let fullText = '';
+        
+        await ollamaService.chatCompletionStream(
+          {
+            model: selectedModel,
+            messages,
+            tools,
+            format,
+            options: {
+              temperature: 0.7
+            }
+          },
+          (response) => {
+            if (response.message?.content) {
+              fullText += response.message.content;
+              setChatResponse(fullText);
+            }
+            
+            if (response.done) {
+              setChatFullResponse(response);
+              // 添加消息到聊天历史
+              setChatMessages([
+                ...newMessages,
+                { role: 'assistant', content: fullText }
+              ]);
+            }
+          }
+        );
+      } else {
+        // 非流式响应
+        const response = await ollamaService.chatCompletion({
+          model: selectedModel,
+          messages,
+          tools,
+          format,
+          stream: false,
+          options: {
+            temperature: 0.7
+          }
+        });
+        
+        setChatResponse(response.message.content);
+        setChatFullResponse(response);
+        
+        // 添加响应到聊天历史
+        setChatMessages([
+          ...newMessages,
+          { role: 'assistant', content: response.message.content }
+        ]);
+      }
+      
+    } catch (err) {
+      setError('聊天请求失败: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setChatLoading(false);
+      setChatInput(''); // 清空输入框
+    }
+  };
+  
+  // 清空聊天历史
+  const clearChatHistory = () => {
+    setChatMessages([]);
+    setChatResponse('');
+    setChatFullResponse(null);
   };
 
   // 组件加载时测试连接
@@ -916,7 +1045,7 @@ export function OllamaSettings() {
           </button>
         </div>
         
-        <div style={styles.commandText}>
+        <div style={styles.commandText}></div>
           命令: curl http://localhost:11434/api/generate -d '{"{"}
             "model": "{selectedModel || "model-name"}",
             "prompt": "{generatePrompt ? generatePrompt.substring(0, 20) + '...' : "your prompt"}",
@@ -931,7 +1060,7 @@ export function OllamaSettings() {
             borderRadius: '4px',
             marginTop: '10px',
             whiteSpace: 'pre-wrap'
-          }}>
+          }}></div>
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>生成结果:</div>
             {generateResponse}
           </div>
@@ -954,7 +1083,7 @@ export function OllamaSettings() {
           >
             <option value="">选择模型</option>
             {models.map(model => (
-              <option key={model.digest} value={`${model.name}:${model.tag}`}>
+              <option key={model.digest} value={`${model.name}:${model.tag}`}></option>
                 {formatModelName(model.name, model.tag)}
               </option>
             ))}
@@ -980,12 +1109,12 @@ export function OllamaSettings() {
               ...styles.button,
               ...(!selectedModel || !embedInput || embedLoading ? styles.buttonDisabled : {})
             }}
-          >
+          ></button>
             {embedLoading ? '生成中...' : '生成嵌入向量'}
           </button>
         </div>
         
-        <div style={styles.commandText}>
+        <div style={styles.commandText}></div>
           命令: curl http://localhost:11434/api/embed -d '{"{"}
             "model": "{selectedModel || "model-name"}",
             "input": "{embedInput ? embedInput.substring(0, 20) + '...' : "your text"}"
@@ -1003,9 +1132,175 @@ export function OllamaSettings() {
             whiteSpace: 'pre-wrap',
             overflow: 'auto',
             maxHeight: '200px'
-          }}>
+          }}></div>
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>嵌入向量 (前10个元素):</div>
             {embedResponse}
+          </div>
+        )}
+      </div>
+
+      {/* Chat API 测试区域 */}
+      <div style={styles.commandSection}>
+        <h3 style={styles.heading}>Chat API 测试</h3>
+        <div style={{marginBottom: '10px'}}>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            style={{
+              ...styles.input,
+              marginBottom: '10px',
+              width: '100%'
+            }}
+            disabled={chatLoading}
+          >
+            <option value="">选择模型</option>
+            {models.map(model => (
+              <option key={model.digest} value={`${model.name}:${model.tag}`}>
+                {formatModelName(model.name, model.tag)}
+              </option>
+            ))}
+          </select>
+          
+          <textarea
+            placeholder="系统提示词 (可选)"
+            value={systemMessage}
+            onChange={(e) => setSystemMessage(e.target.value)}
+            style={{
+              ...styles.input,
+              height: '60px',
+              width: '100%',
+              marginBottom: '10px'
+            }}
+            disabled={chatLoading}
+          />
+          
+          {/* 聊天历史记录 */}
+          {chatMessages.length > 0 && (
+            <div style={{
+              border: '1px solid var(--background-modifier-border)',
+              borderRadius: '4px',
+              marginBottom: '10px',
+              maxHeight: '300px',
+              overflow: 'auto'
+            }}>
+              {chatMessages.map((msg, index) => (
+                <div key={index} style={{
+                  padding: '10px',
+                  borderBottom: index < chatMessages.length - 1 ? '1px solid var(--background-modifier-border)' : 'none',
+                  backgroundColor: msg.role === 'user' ? 'var(--background-secondary)' : 'transparent'
+                }}</div>
+                  <div style={{fontWeight: 'bold', marginBottom: '5px'}}>
+            display: 'flex',
+            gap: '16px',
+            marginBottom: '10px'
+          }}></div>
+            <label style={{display: 'flex', alignItems: 'center'}}>
+              <input
+                type="checkbox"
+                checked={streamingEnabled}
+                onChange={(e) => setStreamingEnabled(e.target.checked)}
+                disabled={chatLoading}
+                style={{marginRight: '5px'}}
+              />
+              JSON格式输出
+            </label>
+            
+            <label style={{display: 'flex', alignItems: 'center'}}>
+              <input
+                type="checkbox"
+                checked={useTools}
+                onChange={(e) => setUseTools(e.target.checked)}
+                disabled={chatLoading}
+                style={{marginRight: '5px'}}
+              />
+              启用工具调用 (天气API)
+            </label>
+          </div>
+          
+          <div style={{display: 'flex', gap: '8px'}}>
+            <button
+              onClick={handleSendChat}
+              disabled={!selectedModel || !chatInput || chatLoading}
+              style={{
+                ...styles.button,
+                ...(!selectedModel || !chatInput || chatLoading ? styles.buttonDisabled : {})
+              }}
+            ></button>
+              {chatLoading ? '发送中...' : '发送消息'}
+            </button>
+            
+            <button
+              onClick={clearChatHistory}
+              disabled={chatLoading || chatMessages.length === 0}
+              style={{
+                ...styles.button,
+                backgroundColor: 'var(--text-error)',
+                ...(chatLoading || chatMessages.length === 0 ? styles.buttonDisabled : {})
+              }}
+            >
+              清空聊天历史
+            </button>
+          </div>
+        </div>
+        
+        <div style={styles.commandText}></div>
+          命令: curl http://localhost:11434/api/chat -d '{"{"}
+            "model": "{selectedModel || "model-name"}",
+            "messages": [...],
+            "stream": {streamingEnabled.toString()},
+            "format": {useJsonFormat ? '"json"' : "undefined"},
+            "tools": {useTools ? "[...]" : "undefined"}
+          {"}"}'
+        </div>
+        
+        {/* 响应区域 */}
+        {!streamingEnabled && chatLoading && (
+          <div style={{
+            padding: '10px',
+            marginTop: '10px',
+            backgroundColor: 'var(--background-secondary)',
+            borderRadius: '4px',
+            textAlign: 'center'
+          }}>
+            正在等待响应...
+          </div>
+        )}
+        
+        {chatResponse && (
+          <div style={{
+            padding: '10px',
+            backgroundColor: 'var(--background-secondary)',
+            borderRadius: '4px',
+            marginTop: '10px',
+            whiteSpace: 'pre-wrap',
+            overflow: 'auto',
+            maxHeight: '400px'
+          }}>
+            <div style={{fontWeight: 'bold', marginBottom: '5px'}}>响应内容:</div>
+            {useJsonFormat ? (
+              <pre style={{margin: 0}}>{chatResponse}</pre>
+            ) : (
+              chatResponse
+            )}
+          </div>
+        )}
+        
+        {/* 完整响应数据 */}
+        {chatFullResponse && (
+          <div style={{
+            marginTop: '10px'
+          }}>
+            <details>
+              <summary style={{
+                cursor: 'pointer',
+                padding: '5px',
+                backgroundColor: 'var(--background-secondary)',
+                borderRadius: '4px'
+              }}>
+                查看完整响应数据
+              </summary>
+              {renderJson(chatFullResponse)}
+            </details>
           </div>
         )}
       </div>

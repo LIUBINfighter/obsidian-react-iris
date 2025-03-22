@@ -153,6 +153,81 @@ export interface EmbeddingResponse {
   prompt_eval_count?: number;
 }
 
+// 添加工具相关接口
+export interface Tool {
+  type: string;
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: string;
+      properties?: Record<string, any>;
+      required?: string[];
+      [key: string]: any;
+    };
+  };
+}
+
+export interface ToolCall {
+  id: string;
+  type: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+// 添加Chat接口相关定义
+export interface ChatCompletionOptions {
+  model: string;
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    content: string | MessageContent[];
+    images?: string[];
+    tool_calls?: ToolCall[];
+  }>;
+  tools?: Tool[];
+  format?: string | object;
+  options?: {
+    temperature?: number;
+    seed?: number;
+    num_predict?: number;
+    top_k?: number;
+    top_p?: number;
+    min_p?: number;
+    typical_p?: number;
+    repeat_last_n?: number;
+    repeat_penalty?: number;
+    presence_penalty?: number;
+    frequency_penalty?: number;
+    mirostat?: number;
+    mirostat_tau?: number;
+    mirostat_eta?: number;
+    penalize_newline?: boolean;
+    stop?: string[];
+    [key: string]: any;
+  };
+  stream?: boolean;
+  keep_alive?: string;
+}
+
+export interface ChatResponse {
+  model: string;
+  created_at: string;
+  message: {
+    role: string;
+    content: string;
+    tool_calls?: ToolCall[];
+  };
+  done: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
 export class OllamaService implements AIService {
   private baseUrl: string;
   private modelName: string;
@@ -817,6 +892,133 @@ export class OllamaService implements AIService {
     } catch (err) {
       console.error('Error getting version:', err);
       throw err;
+    }
+  }
+
+  /**
+   * 发送聊天请求
+   * @param options 聊天参数
+   */
+  async chatCompletion(options: ChatCompletionOptions): Promise<ChatResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(options)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ollama API请求失败: ${response.status} ${response.statusText}`);
+      }
+      
+      return await response.json() as ChatResponse;
+    } catch (err) {
+      console.error('Chat completion error:', err);
+      throw err;
+    }
+  }
+  
+  /**
+   * 发送流式聊天请求
+   * @param options 聊天参数
+   * @param onUpdate 每次收到更新时的回调
+   */
+  async chatCompletionStream(
+    options: ChatCompletionOptions, 
+    onUpdate: (response: Partial<ChatResponse>) => void
+  ): Promise<void> {
+    this.controller = new AbortController();
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...options,
+          stream: true
+        }),
+        signal: this.controller.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ollama API请求失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // 寻找完整的JSON对象
+        const processBuffer = () => {
+          let jsonStartIndex = buffer.indexOf('{');
+          if (jsonStartIndex === -1) {
+            buffer = ''; // 没有JSON对象的开始标记，清空缓冲区
+            return;
+          }
+          
+          let bracketCount = 0;
+          let jsonEndIndex = -1;
+          
+          // 寻找匹配的JSON对象结束位置
+          for (let i = jsonStartIndex; i < buffer.length; i++) {
+            if (buffer[i] === '{') bracketCount++;
+            else if (buffer[i] === '}') bracketCount--;
+            
+            if (bracketCount === 0) {
+              jsonEndIndex = i + 1;
+              break;
+            }
+          }
+          
+          if (jsonEndIndex === -1) {
+            return; // JSON对象不完整，等待更多数据
+          }
+          
+          const jsonStr = buffer.substring(jsonStartIndex, jsonEndIndex);
+          buffer = buffer.substring(jsonEndIndex); // 更新缓冲区，移除已处理的JSON
+          
+          try {
+            const data = JSON.parse(jsonStr) as Partial<ChatResponse>;
+            onUpdate(data);
+          } catch (e) {
+            console.warn('无法解析JSON响应:', jsonStr, e);
+          }
+          
+          // 递归处理剩余缓冲区中可能的下一个JSON对象
+          if (buffer.includes('{')) {
+            processBuffer();
+          }
+        };
+        
+        processBuffer();
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('流式请求已取消');
+      } else {
+        console.error('Ollama流式请求错误:', error);
+      }
+      throw error;
+    } finally {
+      this.controller = null;
     }
   }
 }
