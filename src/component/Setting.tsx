@@ -6,6 +6,7 @@ import { LMStudioSettings } from './lmstudio/LMStudioSettings';
 import { LMStudioRestSettings } from './lmstudio/LMStudioRestSettings';
 import { Introduction } from './Introduction';
 import { OnlineSettings } from './online/OnlineSettings';
+import { MCPSettings } from './mcp/MCPSettings';
 interface SettingComponentProps {
   app: App;
   plugin?: ReactIris; // 插件实例
@@ -17,7 +18,7 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
   plugin,
   autoSave = false // 默认不自动保存
 }) => {
-  const [activeTab, setActiveTab] = useState<'introduction'|'ollama' | 'lmstudio' | 'lmstudio-rest' | 'online'>('introduction');
+  const [activeTab, setActiveTab] = useState<'introduction'|'ollama' | 'lmstudio' | 'lmstudio-rest' | 'online' | 'mcp'>('introduction');
 
   const tabStyle = {
     padding: '8px 16px',
@@ -35,6 +36,12 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
     borderBottomColor: 'var(--interactive-accent)',
     color: 'var(--interactive-accent)'
   };
+
+  const betaTabStyle = (isActive: boolean) => ({
+    ...isActive ? activeTabStyle : tabStyle,
+    backgroundColor: 'rgba(255, 223, 0, 0.1)',
+    position: 'relative' as const
+  });
 
   return (
     <div className="setting-component" style={{ 
@@ -62,16 +69,22 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
           LM Studio
         </button>
         <button 
-          style={activeTab === 'lmstudio-rest' ? activeTabStyle : tabStyle}
+          style={activeTab === 'online' ? activeTabStyle : tabStyle}
+          onClick={() => setActiveTab('online')}
+        >
+          Online
+        </button>
+		<button 
+          style={activeTab === 'lmstudio-rest' ? betaTabStyle(true) : betaTabStyle(false)}
           onClick={() => setActiveTab('lmstudio-rest')}
         >
           Rest API (Beta)
         </button>
         <button 
-          style={activeTab === 'online' ? activeTabStyle : tabStyle}
-          onClick={() => setActiveTab('online')}
+          style={activeTab === 'mcp' ? betaTabStyle(true) : betaTabStyle(false)}
+          onClick={() => setActiveTab('mcp')}
         >
-          Online
+          MCP (Beta)
         </button>
       </div>
       
@@ -79,6 +92,7 @@ export const SettingComponent: React.FC<SettingComponentProps> = ({
        activeTab === 'lmstudio' ? <LMStudioSettings /> : 
        activeTab === 'lmstudio-rest' ? <LMStudioRestSettings /> : 
        activeTab === 'online' ? <OnlineSettings /> :
+       activeTab === 'mcp' ? <MCPSettings /> :
        <Introduction app={app} plugin={plugin} />}
     </div>
   );
