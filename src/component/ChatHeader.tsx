@@ -25,6 +25,7 @@ interface ChatHeaderProps {
   selectedModel?: string;
   availableOllamaModels?: OllamaModel[];
   onOllamaModelChange?: (modelName: string) => void;
+  onOpenReadme?: () => void; // 添加新的prop
 }
 
 /**
@@ -48,9 +49,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   selectedModel = '',
   availableOllamaModels,
   onOllamaModelChange,
+  onOpenReadme,
 }) => {
   const leftSidebarIconRef = useRef<HTMLDivElement>(null);
   const rightSidebarIconRef = useRef<HTMLDivElement>(null);
+  const helpIconRef = useRef<HTMLDivElement>(null); // 添加帮助图标的ref
   const [availableModels, setAvailableModels] = useState<LMStudioModel[]>([]);
   const [internalSelectedModel, setInternalSelectedModel] = useState<string>(selectedModel || '');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -162,17 +165,48 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (rightSidebarIconRef.current) {
       setIcon(rightSidebarIconRef.current, 'sidebar-right');
     }
+    if (helpIconRef.current) {
+      setIcon(helpIconRef.current, 'help-circle'); // 设置帮助图标
+    }
   }, []);
 
-  // 左侧操作按钮 - 添加显示条件
-  const leftActions = !leftSidebarVisible ? (
+  // 左侧操作按钮 - 修改按钮顺序
+  const leftActions = (
+    <>
+      {!leftSidebarVisible && (
+        <button
+          onClick={toggleLeftSidebar}
+          style={createIconButtonStyle(leftSidebarVisible)}
+          title="切换左侧边栏"
+        >
+          <div 
+            ref={leftSidebarIconRef} 
+            style={{ width: '16px', height: '16px' }}
+          />
+        </button>
+      )}
+      <button
+        onClick={onOpenReadme}
+        style={createIconButtonStyle(false)}
+        title="打开帮助文档"
+      >
+        <div 
+          ref={helpIconRef}
+          style={{ width: '16px', height: '16px' }}
+        />
+      </button>
+    </>
+  );
+
+  // 右侧操作按钮 - 只保留侧边栏切换按钮
+  const rightActions = !sidebarVisible ? (
     <button
-      onClick={toggleLeftSidebar}
-      style={createIconButtonStyle(leftSidebarVisible)}
-      title="切换左侧边栏"
+      onClick={toggleSidebar}
+      style={createIconButtonStyle(sidebarVisible)}
+      title="切换右侧边栏"
     >
       <div 
-        ref={leftSidebarIconRef} 
+        ref={rightSidebarIconRef} 
         style={{ width: '16px', height: '16px' }}
       />
     </button>
@@ -307,20 +341,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       )}
     </div>
   );
-
-  // 右侧操作按钮 - 添加显示条件
-  const rightActions = !sidebarVisible ? (
-    <button
-      onClick={toggleSidebar}
-      style={createIconButtonStyle(sidebarVisible)}
-      title="切换右侧边栏"
-    >
-      <div 
-        ref={rightSidebarIconRef} 
-        style={{ width: '16px', height: '16px' }}
-      />
-    </button>
-  ) : null;
 
   return (
     <Header

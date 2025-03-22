@@ -38,6 +38,7 @@ interface ChatProps {
   leftSidebarVisible: boolean;
   toggleLeftSidebar: () => void;
   plugin?: ReactIris;
+  onOpenReadme?: () => void; // 添加这个属性
 }
 
 type AIServiceType = 'ollama' | 'mock' | 'lmstudio';
@@ -50,7 +51,8 @@ export const ChatComponent: React.FC<ChatProps> = ({
   toggleSidebar,
   leftSidebarVisible,
   toggleLeftSidebar,
-  plugin
+  plugin,
+  onOpenReadme
 }) => {
   // 状态
   const [messages, setMessages] = useState<Message[]>([]);
@@ -489,6 +491,7 @@ export const ChatComponent: React.FC<ChatProps> = ({
         selectedModel={selectedModel}
         availableOllamaModels={availableOllamaModels}
         onOllamaModelChange={handleModelChange}
+        onOpenReadme={onOpenReadme}  // 传递给 ChatHeader
       />
       
       {/* 消息列表 */}

@@ -81,6 +81,11 @@ export class ChatView extends ItemView {
         this.renderReactComponent();
     }
 
+    // 添加打开readme视图的方法
+    handleOpenReadme = () => {
+        this.plugin.activateReadMeView();
+    }
+
     async onOpen(): Promise<void> {
         const container = this.containerEl.children[1];
         container.empty();
@@ -162,7 +167,8 @@ export class ChatView extends ItemView {
                             leftSidebarVisible: this.leftSidebarVisible,
                             toggleLeftSidebar: this.toggleLeftSidebar,
                             plugin: this.plugin,
-                            sessionId: this.currentSessionId // 传递当前会话ID
+                            sessionId: this.currentSessionId,
+                            onOpenReadme: this.handleOpenReadme // 添加这行
                         })
                     ),
                     

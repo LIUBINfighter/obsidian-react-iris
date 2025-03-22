@@ -121,20 +121,7 @@ export class ReadMeView extends ItemView {
     contentSection.empty();
     
     try {
-      // 显示组件标题
-      let contentTitle = "";
-      
-      switch (this.activeTab) {
-        case TabType.INSTRUCTIONS:
-          contentTitle = "使用说明";
-          break;
-        case TabType.SETTINGS:
-          contentTitle = "插件设置";
-          break;
-      }
-      
-      const contentHeader = contentSection.createEl("h2", { text: contentTitle });
-      
+	//   无需标题	
       // 卸载现有的React根节点（如果存在）
       if (this.root) {
         this.root.unmount();
