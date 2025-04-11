@@ -51,11 +51,6 @@ graph TD
 - 响应式侧边栏设计  
 `<gif: responsive-sidebar>`
 
-## 🤝 开源承诺
-```diff
-+ 永久免费的核心功能
-! 未来可能增加增值服务
-- 绝不隐藏任何核心功能
-```
+
 
 ℹ️ 完整文档请查看 [开发者指南](docs/developer.md)
