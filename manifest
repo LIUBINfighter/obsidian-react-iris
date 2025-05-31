@@ -3,7 +3,7 @@
 	"name": "React Iris",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Iris shows almost all the options for llm & AI in Obsidian.",
+	"description": "Detailed guide and React UI to chat with llm using ollama & lmstudio. Save important output and memos when chatting.",
 	"author": "Jay Bridge",
 	"authorUrl": "https://github.com/LIUBINfighter/obsidian-react-iris",
 	"fundingUrl": "",
