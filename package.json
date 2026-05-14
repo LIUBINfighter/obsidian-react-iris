@@ -36,8 +36,8 @@
     "jest-environment-jsdom": "^29.7.0"
   },
   "dependencies": {
-    "@langchain/community": "^0.0.19",
-    "@langchain/core": "^0.1.19",
+    "@langchain/community": "^1.1.28",
+    "@langchain/core": "^1.1.46",
     "gpt-tokenizer": "^2.1.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
